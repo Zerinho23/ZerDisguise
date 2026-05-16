@@ -13,13 +13,12 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Intercepts chat messages for players who are in "awaiting disguise name" mode.
- * Also handles player death (disguise removal) and quit cleanup.
+ * Intercepta mensajes de chat para jugadores en modo "esperando nombre de disfraz".
+ * También maneja la muerte del jugador (quitar disfraz) y limpieza al salir.
  */
 public class ChatListener implements Listener {
 
-    private final Map<UUID, Boolean>   awaitingInput = new HashMap<>();
-    private final Map<UUID, String[]>  pendingConfirm = new HashMap<>();
+    private final Map<UUID, Boolean> awaitingInput = new HashMap<>();
 
     private final ZerDisguise plugin;
 
@@ -51,14 +50,13 @@ public class ChatListener implements Listener {
         if (input.length() > 16 || !input.matches("[a-zA-Z0-9_]+")) {
             player.sendMessage(plugin.getConfigManager().getPrefix().append(
                     plugin.getConfigManager().component(
-                            "&cNombre invalido. Solo letras, numeros y _ (max 16 caracteres).")));
+                            "&cNombre inválido. Solo letras, números y _ (máx 16 caracteres).")));
             return;
         }
 
-        plugin.getServer().getScheduler().runTask(plugin, () -> {
-            setPendingConfirm(player, input, "default");
-            player.openInventory(new MenuBuilder(plugin).buildConfirmMenu(player, input, "default"));
-        });
+        // Abrir menú de confirmación en el hilo principal
+        plugin.getServer().getScheduler().runTask(plugin, () ->
+                player.openInventory(new MenuBuilder(plugin).buildConfirmMenu(player, input)));
     }
 
     @EventHandler
@@ -68,24 +66,10 @@ public class ChatListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        UUID id = e.getPlayer().getUniqueId();
-        awaitingInput.remove(id);
-        pendingConfirm.remove(id);
+        awaitingInput.remove(e.getPlayer().getUniqueId());
     }
 
     public void awaitInput(Player player) {
         awaitingInput.put(player.getUniqueId(), true);
-    }
-
-    public void setPendingConfirm(Player player, String disguiseName, String rankId) {
-        pendingConfirm.put(player.getUniqueId(), new String[]{disguiseName, rankId});
-    }
-
-    public String[] getPendingConfirm(Player player) {
-        return pendingConfirm.get(player.getUniqueId());
-    }
-
-    public void clearPendingConfirm(Player player) {
-        pendingConfirm.remove(player.getUniqueId());
     }
 }

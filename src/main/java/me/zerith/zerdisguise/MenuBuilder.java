@@ -154,7 +154,12 @@ public class MenuBuilder {
     //  MENÚ DE CONFIRMACIÓN
     // ─────────────────────────────────────────────────────────────
 
-    public Inventory buildConfirmMenu(Player player, String disguiseName, String selectedRankId) {
+    /**
+     * Menú de confirmación simplificado: solo muestra la cabeza del objetivo,
+     * info del disfraz y botones Confirmar / Cambiar nombre / Volver.
+     * El rango se resuelve automáticamente en DisguiseManager al aplicar.
+     */
+    public Inventory buildConfirmMenu(Player player, String disguiseName) {
         ConfigManager cfg = plugin.getConfigManager();
         MenuConfig    mc  = plugin.getMenuConfig();
         RankProvider  rp  = plugin.getRankProvider();
@@ -162,35 +167,24 @@ public class MenuBuilder {
         Inventory inv = Bukkit.createInventory(null, 54,
                 cfg.component(mc.getConfirmTitle()));
 
-        ItemStack border = glass(mc.getBorderMaterial(), "");
-        ItemStack corner = glass(mc.getCornerMaterial(), "");
-        ItemStack filler = glass(mc.getFillerMaterial(), "");
+        ItemStack border  = glass(mc.getBorderMaterial(),  "");
+        ItemStack corner  = glass(mc.getCornerMaterial(),  "");
+        ItemStack filler  = glass(mc.getFillerMaterial(),  "");
+        ItemStack divider = glass(mc.getDividerMaterial(), "");
 
-        // ── Fila 0: borde + cabeza preview ────────────────────────
+        // ── Fila 0: borde + cabeza preview centrada ───────────────
         inv.setItem(0, corner);
         for (int i = 1; i <= 7; i++) inv.setItem(i, border);
         inv.setItem(8, corner);
-        inv.setItem(4, buildPreviewHead(disguiseName, selectedRankId));
+        inv.setItem(4, buildPreviewHead(disguiseName, rp, cfg));
 
-        // ── Filas 1-2: selector de rangos ─────────────────────────
-        inv.setItem(9,  glass(mc.getDividerMaterial(), ""));
-        inv.setItem(17, glass(mc.getDividerMaterial(), ""));
-        inv.setItem(18, glass(mc.getDividerMaterial(), ""));
-        inv.setItem(26, glass(mc.getDividerMaterial(), ""));
-
-        List<RankProvider.GroupEntry> groups  = rp.getAllGroups();
-        int[] rankSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
-        for (int i = 0; i < Math.min(groups.size(), rankSlots.length); i++) {
-            RankProvider.GroupEntry g = groups.get(i);
-            boolean selected = g.id().equalsIgnoreCase(selectedRankId);
-            inv.setItem(rankSlots[i], buildRankButton(g, disguiseName, selected, i));
-        }
-        for (int i = 9; i < 27; i++) {
-            if (inv.getItem(i) == null) inv.setItem(i, filler);
-        }
-
-        // ── Filas 3-4: relleno ────────────────────────────────────
+        // ── Filas 1-4: relleno limpio con divisor central ─────────
+        for (int i = 9;  i < 18; i++) inv.setItem(i, filler);
+        for (int i = 18; i < 27; i++) inv.setItem(i, divider);
         for (int i = 27; i < 45; i++) inv.setItem(i, filler);
+
+        // Etiqueta informativa en el centro del divisor (slot 22)
+        inv.setItem(22, buildDisguiseInfoLabel(disguiseName, rp, cfg, mc));
 
         // ── Fila 5: botones de acción ─────────────────────────────
         inv.setItem(45, corner);
@@ -198,8 +192,7 @@ public class MenuBuilder {
         inv.setItem(53, corner);
 
         List<String> renameLore = mc.getRenameLore().isEmpty()
-                ? List.of("&7Escribe un nombre diferente",
-                          "&7en el chat.", "",
+                ? List.of("&7Escribe un nombre diferente en el chat.", "",
                           "&e&l» &eClic para cambiar")
                 : mc.getRenameLore();
 
@@ -208,13 +201,11 @@ public class MenuBuilder {
                           "&c&l» &cClic para volver")
                 : mc.getBackLore();
 
-        inv.setItem(mc.getRenameSlot(), buildActionButton(
-                mc.getRenameMaterial(), "rename", disguiseName, selectedRankId,
-                mc.getRenameName(), renameLore));
-        inv.setItem(mc.getConfirmBtnSlot(), buildConfirmButton(disguiseName, selectedRankId, mc));
-        inv.setItem(mc.getBackSlot(), buildActionButton(
-                mc.getBackMaterial(), "back", disguiseName, selectedRankId,
-                mc.getBackName(), backLore));
+        inv.setItem(mc.getRenameSlot(),    buildActionButton(mc.getRenameMaterial(),
+                "rename", disguiseName, "", mc.getRenameName(), renameLore));
+        inv.setItem(mc.getConfirmBtnSlot(), buildConfirmButton(disguiseName, mc));
+        inv.setItem(mc.getBackSlot(),      buildActionButton(mc.getBackMaterial(),
+                "back", disguiseName, "", mc.getBackName(), backLore));
 
         return inv;
     }
@@ -340,21 +331,21 @@ public class MenuBuilder {
         return skull;
     }
 
-    private ItemStack buildPreviewHead(String disguiseName, String selectedRankId) {
-        ConfigManager cfg    = plugin.getConfigManager();
-        Player        target = Bukkit.getPlayerExact(disguiseName);
+    private ItemStack buildPreviewHead(String disguiseName, RankProvider rp, ConfigManager cfg) {
+        Player    target  = Bukkit.getPlayerExact(disguiseName);
+        boolean   online  = target != null;
+        String    rankPrefix = online ? rp.getPlayerPrefix(target) : null;
+        String    rankId     = online ? rp.getPlayerPrimaryGroup(target) : "?";
+        String    estado     = online ? "&a● Online" : "&8● Offline";
+
+        // Limpiar colores del prefijo para mostrarlo limpio
+        String rankClean = rankPrefix != null && !rankPrefix.isBlank()
+                ? rankPrefix
+                : "&8[&7" + capitalize(rankId) + "&8]";
 
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta  = (SkullMeta) skull.getItemMeta();
         if (target != null) meta.setOwningPlayer(target);
-
-        String rankDisplay = selectedRankId;
-        for (ConfigManager.RankEntry r : cfg.getRanks()) {
-            if (r.id().equalsIgnoreCase(selectedRankId)) {
-                rankDisplay = r.color() + r.name();
-                break;
-            }
-        }
 
         meta.displayName(ni(cfg.component("&#CC88FF&l" + disguiseName)));
         List<Component> lore = new ArrayList<>();
@@ -362,14 +353,44 @@ public class MenuBuilder {
         addLoreLine(lore, cfg, "&8│ &7Vista previa del disfraz");
         addLoreLine(lore, cfg, "&8├─────────────────");
         addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
-        addLoreLine(lore, cfg, "&8│ &8Rango&8:  &f" + rankDisplay);
+        lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankClean)));
+        addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
         addLoreLine(lore, cfg, "&8├─────────────────");
-        addLoreLine(lore, cfg, "&8│ &7Selecciona el rango abajo.");
+        addLoreLine(lore, cfg, "&8│ &7Confirma abajo para aplicar.");
         addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
         addGlow(meta);
         skull.setItemMeta(meta);
         return skull;
+    }
+
+    private ItemStack buildDisguiseInfoLabel(String disguiseName, RankProvider rp,
+                                             ConfigManager cfg, MenuConfig mc) {
+        Player  target   = Bukkit.getPlayerExact(disguiseName);
+        boolean online   = target != null;
+        String  rankPrefix = online ? rp.getPlayerPrefix(target) : null;
+        String  rankId     = online ? rp.getPlayerPrimaryGroup(target) : null;
+        String  rankClean  = rankPrefix != null && !rankPrefix.isBlank()
+                ? rankPrefix
+                : (rankId != null ? "&8[&f" + capitalize(rankId) + "&8]" : "&8[&7Default&8]");
+        String  estado   = online ? "&a● Online" : "&8● Offline &7(skin desde Mojang)";
+
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(ni(cfg.component("&#CC88FF&l✦ Información del disfraz")));
+
+        List<Component> lore = new ArrayList<>();
+        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
+        lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankClean)));
+        addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &7El rango se detecta automáticamente");
+        addLoreLine(lore, cfg, "&8│ &7de LuckPerms al confirmar.");
+        addLoreLine(lore, cfg, "&8└─────────────────");
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
     }
 
     private ItemStack buildRankButton(RankProvider.GroupEntry group,
@@ -405,15 +426,17 @@ public class MenuBuilder {
         return item;
     }
 
-    private ItemStack buildConfirmButton(String disguiseName, String rankId, MenuConfig mc) {
-        ConfigManager cfg = plugin.getConfigManager();
+    private ItemStack buildConfirmButton(String disguiseName, MenuConfig mc) {
+        ConfigManager cfg  = plugin.getConfigManager();
+        RankProvider  rp   = plugin.getRankProvider();
+        Player        tgt  = Bukkit.getPlayerExact(disguiseName);
+        String        rankTxt = tgt != null
+                ? (rp.getPlayerPrefix(tgt) != null && !rp.getPlayerPrefix(tgt).isBlank()
+                        ? rp.getPlayerPrefix(tgt) : "&7" + rp.getPlayerPrimaryGroup(tgt))
+                : "&7automático al aplicar";
+
         ItemStack item = new ItemStack(mc.getConfirmBtnMaterial());
         ItemMeta  meta = item.getItemMeta();
-
-        String rankDisplay = rankId;
-        for (ConfigManager.RankEntry r : cfg.getRanks()) {
-            if (r.id().equalsIgnoreCase(rankId)) { rankDisplay = r.color() + r.name(); break; }
-        }
 
         meta.displayName(ni(cfg.component(mc.getConfirmBtnName())));
         List<Component> lore = new ArrayList<>();
@@ -421,7 +444,7 @@ public class MenuBuilder {
         addLoreLine(lore, cfg, "&8│ &7Aplicará lo siguiente&8:");
         addLoreLine(lore, cfg, "&8├─────────────────");
         addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
-        addLoreLine(lore, cfg, "&8│ &8Rango&8:  &f" + rankDisplay);
+        lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankTxt)));
         addLoreLine(lore, cfg, "&8│ &8Skin&8:   &7La de &d" + disguiseName);
         addLoreLine(lore, cfg, "&8├─────────────────");
         addLoreLine(lore, cfg, "&8│ &a&l» &aHaz clic para aplicar");
@@ -431,7 +454,6 @@ public class MenuBuilder {
         var pdc = meta.getPersistentDataContainer();
         pdc.set(KEY_ACTION,   PersistentDataType.STRING, "confirm");
         pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName);
-        pdc.set(KEY_RANK,     PersistentDataType.STRING, rankId);
         addGlow(meta);
         item.setItemMeta(meta);
         return item;

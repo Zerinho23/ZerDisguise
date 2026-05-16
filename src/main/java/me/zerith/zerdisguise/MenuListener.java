@@ -43,13 +43,12 @@ public class MenuListener implements Listener {
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || !clicked.hasItemMeta()) return;
         ItemMeta meta = clicked.getItemMeta();
-        if (meta == null) return;
-        if (MenuBuilder.KEY_ACTION == null) return;
+        if (meta == null || MenuBuilder.KEY_ACTION == null) return;
 
         var    pdc      = meta.getPersistentDataContainer();
         String action   = pdc.getOrDefault(MenuBuilder.KEY_ACTION,   PersistentDataType.STRING,  "");
-        String rankId   = pdc.getOrDefault(MenuBuilder.KEY_RANK,     PersistentDataType.STRING,  "");
         String disguise = pdc.getOrDefault(MenuBuilder.KEY_DISGUISE, PersistentDataType.STRING,  "");
+        String rankId   = pdc.getOrDefault(MenuBuilder.KEY_RANK,     PersistentDataType.STRING,  "");
         String target   = pdc.getOrDefault(MenuBuilder.KEY_PLAYER,   PersistentDataType.STRING,  "");
         int    page     = pdc.getOrDefault(MenuBuilder.KEY_PAGE,     PersistentDataType.INTEGER,  0);
 
@@ -57,6 +56,7 @@ public class MenuListener implements Listener {
 
         switch (action) {
 
+            // ── Menú principal: abrir input de nombre por chat ────────────────
             case "write" -> {
                 player.closeInventory();
                 plugin.getChatListener().awaitInput(player);
@@ -69,31 +69,34 @@ public class MenuListener implements Listener {
                         cfg.component(cfg.getMsgWriteDisguise())));
             }
 
+            // ── Menú principal: quitar disfraz activo ─────────────────────────
             case "remove" -> {
                 player.closeInventory();
                 plugin.getDisguiseManager().removeDisguise(player);
             }
 
+            // ── Menú principal: clic en cabeza de jugador online ──────────────
+            // Aplica disfraz inmediatamente con nombre + skin + rango real de LP
             case "instant_disguise" -> {
                 if (target.isBlank() || player.getName().equalsIgnoreCase(target)) return;
                 player.closeInventory();
+                // rankId ya contiene el primaryGroup del objetivo; DisguiseManager
+                // resolverá el prefijo real desde LuckPerms/Vault automáticamente.
                 plugin.getDisguiseManager().applyDisguise(player, target,
                         rankId.isBlank() ? "default" : rankId);
             }
 
-            case "select_rank" -> {
-                if (disguise.isBlank() || rankId.isBlank()) return;
-                player.openInventory(new MenuBuilder(plugin)
-                        .buildConfirmMenu(player, disguise, rankId));
-            }
-
+            // ── Menú de confirmación: confirmar disfraz ───────────────────────
             case "confirm" -> {
                 if (disguise.isBlank()) return;
                 player.closeInventory();
-                plugin.getDisguiseManager().applyDisguise(player,
-                        disguise, rankId.isBlank() ? "default" : rankId);
+                // El rango se detecta automáticamente en applyDisguise:
+                //  - Si el objetivo está online → rango real de LP
+                //  - Si está offline → "default"
+                plugin.getDisguiseManager().applyDisguise(player, disguise, "");
             }
 
+            // ── Menú de confirmación: cambiar nombre (re-abrir chat) ──────────
             case "rename" -> {
                 player.closeInventory();
                 plugin.getChatListener().awaitInput(player);
@@ -106,10 +109,12 @@ public class MenuListener implements Listener {
                         cfg.component(cfg.getMsgWriteDisguise())));
             }
 
+            // ── Menú de confirmación: volver al menú principal ────────────────
             case "back" -> {
                 player.openInventory(new MenuBuilder(plugin).buildMainMenu(player, 0));
             }
 
+            // ── Navegación por páginas ────────────────────────────────────────
             case "prev_page", "next_page" -> {
                 player.openInventory(new MenuBuilder(plugin).buildMainMenu(player, page));
             }

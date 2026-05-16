@@ -1,5 +1,6 @@
 package me.zerith.zerdisguise;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -7,8 +8,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tracks each player's current/previous disguise + rank.
- * Coordinates display-name, tab-list, nameplate and skin changes.
+ * Gestiona los disfraces activos y anteriores de cada jugador.
+ *
+ * Al aplicar un disfraz:
+ *  1. Si el jugador objetivo está online → su rango se obtiene directamente de LuckPerms/Vault.
+ *  2. Si está offline y se proporcionó un rankId → se busca el prefijo en LuckPerms/Vault,
+ *     luego en config.yml como fallback.
+ *  3. Si no hay ningún rango disponible → se muestra el nombre solo, sin prefijo.
  */
 public class DisguiseManager {
 
@@ -23,30 +29,65 @@ public class DisguiseManager {
         this.plugin = plugin;
     }
 
+    /**
+     * Aplica un disfraz detectando automáticamente el rango del jugador objetivo.
+     * Si el objetivo está online, usa su rango real de LuckPerms/Vault.
+     * Si está offline, usa el rankId proporcionado (o "default" si está vacío).
+     */
     public void applyDisguise(Player player, String disguiseName, String rankId) {
         ConfigManager cfg = plugin.getConfigManager();
+        RankProvider  rp  = plugin.getRankProvider();
         SkinApplier   sa  = plugin.getSkinApplier();
 
+        // Guardar disfraz anterior
         DisguiseData cur = current.get(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
-        current.put(player.getUniqueId(), new DisguiseData(disguiseName, rankId));
 
-        String rankPrefix      = "";
-        String rankDisplayName = rankId;
-        for (ConfigManager.RankEntry r : cfg.getRanks()) {
-            if (r.id().equalsIgnoreCase(rankId)) {
-                rankPrefix      = r.prefix();
-                rankDisplayName = r.color() + r.name();
-                break;
+        // ── Resolver el rango real ────────────────────────────────────────────
+        String resolvedRankId = rankId != null && !rankId.isBlank() ? rankId : "default";
+        String rankPrefix     = null;
+        String rankDisplay    = null;
+
+        // 1) Si el jugador objetivo está online → tomar su rango real de LuckPerms/Vault
+        Player onlineTarget = Bukkit.getPlayerExact(disguiseName);
+        if (onlineTarget != null) {
+            resolvedRankId = rp.getPlayerPrimaryGroup(onlineTarget);
+            rankPrefix     = rp.getPlayerPrefix(onlineTarget);  // prefijo real con colores
+        }
+
+        // 2) Si no se obtuvo prefijo (offline o sin LP) → buscar en LuckPerms por groupId
+        if (rankPrefix == null || rankPrefix.isBlank()) {
+            rankPrefix = rp.getGroupPrefix(resolvedRankId);
+        }
+
+        // 3) Fallback a config.yml
+        if (rankPrefix == null || rankPrefix.isBlank()) {
+            for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                if (r.id().equalsIgnoreCase(resolvedRankId)) {
+                    rankPrefix  = r.prefix();
+                    rankDisplay = r.color() + r.name();
+                    break;
+                }
             }
         }
 
-        String display = cfg.colorize(rankPrefix + " &d" + disguiseName);
+        // 4) Último fallback: mostrar el ID capitalizado
+        if (rankPrefix  == null) rankPrefix  = "";
+        if (rankDisplay == null) {
+            rankDisplay = "&f" + capitalize(resolvedRankId);
+        }
+
+        current.put(player.getUniqueId(), new DisguiseData(disguiseName, resolvedRankId));
+
+        // ── Aplicar nombre visible y nameplate ───────────────────────────────
+        String display = cfg.colorize(
+                rankPrefix.isBlank() ? "&d" + disguiseName : rankPrefix + " &d" + disguiseName);
         player.setDisplayName(display);
         player.setPlayerListName(display);
         sa.applyNameplate(player, rankPrefix);
 
-        final String finalRankDisplayName = rankDisplayName;
+        // ── Fetch y aplicar skin ──────────────────────────────────────────────
+        final String finalRankDisplay = rankDisplay;
 
         player.sendMessage(cfg.getPrefix().append(
                 cfg.component("&7Cargando skin de &d" + disguiseName + "&7...")));
@@ -55,22 +96,22 @@ public class DisguiseManager {
                 disguiseName,
                 skinData -> {
                     if (!player.isOnline()) return;
-                    boolean applied = sa.applySkin(player, skinData);
+                    sa.applySkin(player, skinData);
 
                     String msg = cfg.getMsgApplied()
                             .replace("{disguise}", disguiseName)
-                            .replace("{rank}",     finalRankDisplayName);
-                    player.sendMessage(cfg.getPrefix().append(cfg.component(
-                            msg + (applied ? "" : " &8(&7skin no disponible&8)"))));
+                            .replace("{rank}",     finalRankDisplay);
+                    player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
                 },
                 errorMsg -> {
                     if (!player.isOnline()) return;
+                    // El disfraz de nombre ya está activo — solo avisamos que la skin falló
                     String msg = cfg.getMsgApplied()
                             .replace("{disguise}", disguiseName)
-                            .replace("{rank}",     finalRankDisplayName);
+                            .replace("{rank}",     finalRankDisplay);
                     player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
                     player.sendMessage(cfg.getPrefix().append(
-                            cfg.component("&e⚠ Skin no encontrada: &7" + errorMsg)));
+                            cfg.component("&e⚠ &7No se pudo cargar la skin: &c" + errorMsg)));
                 }
         );
     }
@@ -107,4 +148,9 @@ public class DisguiseManager {
 
     public DisguiseData getCurrent(UUID uuid)  { return current.get(uuid); }
     public DisguiseData getPrevious(UUID uuid) { return previous.get(uuid); }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
+    }
 }
