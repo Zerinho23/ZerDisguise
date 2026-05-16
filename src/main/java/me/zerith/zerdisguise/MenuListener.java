@@ -30,6 +30,12 @@ public class MenuListener implements Listener {
 
         if (!isMainMenu && !isConfirmMenu) return;
 
+        // Guarda de permiso: si el jugador perdió el permiso con el inventario abierto
+        if (!player.hasPermission("zerdisguise.use")) {
+            player.closeInventory();
+            return;
+        }
+
         e.setCancelled(true);
         ItemStack clicked = e.getCurrentItem();
         if (clicked == null || clicked.getType().isAir()) return;
