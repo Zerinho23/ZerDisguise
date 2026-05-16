@@ -7,8 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Tracks each player's current and previous disguise + rank.
- * The actual display-name change is done here via Adventure API.
+ * Tracks each player's current/previous disguise + rank.
+ * Coordinates display-name, tab-list, nameplate and skin changes.
  */
 public class DisguiseManager {
 
@@ -23,49 +23,104 @@ public class DisguiseManager {
         this.plugin = plugin;
     }
 
-    /** Apply a disguise (name + rank) to a player. */
+    // ── Apply ─────────────────────────────────────────────────────────────────
+
+    /**
+     * Applies name + rank immediately, then asynchronously fetches and applies
+     * the skin of {@code disguiseName}. Must be called on the main thread.
+     */
     public void applyDisguise(Player player, String disguiseName, String rankId) {
         ConfigManager cfg = plugin.getConfigManager();
+        SkinApplier   sa  = plugin.getSkinApplier();
 
-        // Store previous before overwriting
+        // Persist previous
         DisguiseData cur = current.get(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
-
         current.put(player.getUniqueId(), new DisguiseData(disguiseName, rankId));
 
-        // Find rank prefix
-        String prefix = "";
+        // Resolve rank
+        String rankPrefix      = "";
         String rankDisplayName = rankId;
         for (ConfigManager.RankEntry r : cfg.getRanks()) {
             if (r.id().equalsIgnoreCase(rankId)) {
-                prefix = r.prefix();
+                rankPrefix      = r.prefix();
                 rankDisplayName = r.color() + r.name();
                 break;
             }
         }
 
-        // Change the display name seen by other players
-        String display = cfg.colorize(prefix + " &d" + disguiseName);
+        // ── 1. Name & tab list (instant) ─────────────────────────────────────
+        String display = cfg.colorize(rankPrefix + " &d" + disguiseName);
         player.setDisplayName(display);
         player.setPlayerListName(display);
 
-        // Announce
-        String msg = cfg.getMsgApplied()
-                .replace("{disguise}", disguiseName)
-                .replace("{rank}", rankDisplayName);
-        player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+        // ── 2. Nametag prefix via Scoreboard ─────────────────────────────────
+        sa.applyNameplate(player, rankPrefix);
+
+        // ── 3. Skin (async fetch → sync apply) ───────────────────────────────
+        final String finalRankDisplayName = rankDisplayName;
+
+        player.sendMessage(cfg.getPrefix().append(
+                cfg.component("&7Cargando skin de &d" + disguiseName + "&7...")));
+
+        plugin.getSkinFetcher().fetchSkin(
+                disguiseName,
+                // onSuccess
+                skinData -> {
+                    if (!player.isOnline()) return;
+                    boolean applied = sa.applySkin(player, skinData);
+
+                    String msg = cfg.getMsgApplied()
+                            .replace("{disguise}", disguiseName)
+                            .replace("{rank}",     finalRankDisplayName);
+                    player.sendMessage(cfg.getPrefix().append(cfg.component(
+                            msg + (applied ? "" : " &8(&7skin no disponible&8)"))));
+                },
+                // onError
+                errorMsg -> {
+                    if (!player.isOnline()) return;
+                    // Name is already applied — just warn that skin failed
+                    String msg = cfg.getMsgApplied()
+                            .replace("{disguise}", disguiseName)
+                            .replace("{rank}",     finalRankDisplayName);
+                    player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                    player.sendMessage(cfg.getPrefix().append(
+                            cfg.component("&e⚠ Skin no encontrada: &7" + errorMsg)));
+                }
+        );
     }
 
-    /** Remove the disguise from a player (restore real name). */
+    // ── Remove ────────────────────────────────────────────────────────────────
+
+    /** Removes the disguise, restores real name and skin. */
     public void removeDisguise(Player player) {
         ConfigManager cfg = plugin.getConfigManager();
+        SkinApplier   sa  = plugin.getSkinApplier();
+
         DisguiseData cur = current.remove(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
 
         player.setDisplayName(player.getName());
         player.setPlayerListName(player.getName());
+        sa.removeNameplate(player);
+        sa.removeSkin(player);
+
         player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
     }
+
+    /** Called on player death — clears disguise silently. */
+    public void clearOnDeath(Player player) {
+        DisguiseData cur = current.remove(player.getUniqueId());
+        if (cur == null) return;
+        previous.put(player.getUniqueId(), cur);
+
+        player.setDisplayName(player.getName());
+        player.setPlayerListName(player.getName());
+        plugin.getSkinApplier().removeNameplate(player);
+        plugin.getSkinApplier().removeSkin(player);
+    }
+
+    // ── Getters ───────────────────────────────────────────────────────────────
 
     public boolean isDisguised(Player player) {
         return current.containsKey(player.getUniqueId());
@@ -73,13 +128,4 @@ public class DisguiseManager {
 
     public DisguiseData getCurrent(UUID uuid)  { return current.get(uuid); }
     public DisguiseData getPrevious(UUID uuid) { return previous.get(uuid); }
-
-    public void clearOnDeath(Player player) {
-        DisguiseData cur = current.remove(player.getUniqueId());
-        if (cur != null) {
-            previous.put(player.getUniqueId(), cur);
-            player.setDisplayName(player.getName());
-            player.setPlayerListName(player.getName());
-        }
-    }
 }
