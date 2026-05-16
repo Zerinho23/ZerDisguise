@@ -49,7 +49,7 @@ package me.zerith.zerdisguise;
               // ── Abrir chat para escribir nombre ───────────────────────────────
               case "write" -> {
                   player.closeInventory();
-                  plugin.getChatListener().startPrompt(player);
+                  plugin.getChatListener().awaitInput(player);
               }
 
               // ── Remover disfraz ───────────────────────────────────────────────
@@ -90,7 +90,7 @@ package me.zerith.zerdisguise;
               // ── Renombrar (volver al prompt de chat) ──────────────────────────
               case "rename" -> {
                   player.closeInventory();
-                  plugin.getChatListener().startPrompt(player);
+                  plugin.getChatListener().awaitInput(player);
               }
 
               // ── Página anterior ───────────────────────────────────────────────
