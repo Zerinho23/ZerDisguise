@@ -5,7 +5,7 @@
   **Plugin de disfraces con GUI interactiva para servidores de Minecraft**
   Desarrollado por **zerinho23**
 
-  [![Versión](https://img.shields.io/badge/versión-1.0.0-purple?style=for-the-badge)](https://github.com/Zerinho23/ZerDisguise/releases/latest)
+  [![Versión](https://img.shields.io/badge/versión-1.3.0-purple?style=for-the-badge)](https://github.com/Zerinho23/ZerDisguise/releases/latest)
   [![Paper](https://img.shields.io/badge/Paper-1.20--1.21+-blue?style=for-the-badge)](https://papermc.io)
   [![Java](https://img.shields.io/badge/Java-17+-orange?style=for-the-badge)](https://adoptium.net)
 
@@ -15,7 +15,7 @@
 
   ## 📖 ¿Qué es ZerDisguise?
 
-  ZerDisguise es un plugin que permite a los jugadores cambiarse el nombre de forma visual mediante una **GUI interactiva**, con soporte para rangos configurables, cabeza Base64 personalizada y flujo de escritura en el chat.
+  ZerDisguise es un plugin que permite a los jugadores cambiarse el nombre y la skin visualmente mediante una **GUI interactiva de 54 slots**, con soporte para rangos reales de LuckPerms/Vault, sección de jugadores conectados con paginación y flujo de escritura en el chat.
 
   ---
 
@@ -23,14 +23,29 @@
 
   | Característica | Descripción |
   |---|---|
-  | 🖥️ **GUI interactiva** | Menú completo con cabeza del jugador e información |
-  | 🧠 **Cabeza Base64** | Botón especial con textura personalizada |
-  | 💬 **Flujo de chat** | El jugador escribe su disfraz directamente en el chat |
-  | 👑 **Selector de rangos** | Elige entre Default, VIP, Admin (configurable) |
+  | 🖥️ **GUI 54 slots** | Menú rediseñado con 6 filas, bien estructurado |
+  | 👥 **Jugadores online** | Sección con cabezas de todos los conectados, clic = disfraz instantáneo |
+  | 📄 **Paginación** | Flechas ← → para navegar cuando hay más de 18 jugadores |
+  | 👑 **Rangos reales** | Lee automáticamente los grupos de LuckPerms o Vault |
+  | 🏷️ **PlaceholderAPI** | Soporte para `%luckperms_prefix%` y `%vault_prefix%` |
+  | 🎨 **Skin automática** | Aplica la skin del nombre elegido vía Mojang API |
+  | 💬 **Flujo de chat** | Escribe el nombre directamente en el chat |
   | 📊 **Info completa** | Muestra rango actual, disfraz actual y disfraz anterior |
   | ☠️ **Pierde al morir** | El disfraz se elimina automáticamente al morir |
-  | 🎨 **Soporte HEX** | Colores `&#RRGGBB` en mensajes y menús |
   | 🔧 **Disfrazar a otros** | Los admins pueden gestionar el disfraz de cualquier jugador |
+  | 🎨 **Soporte HEX** | Colores `&#RRGGBB` en mensajes y menús |
+
+  ---
+
+  ## 📦 Dependencias
+
+  | Plugin | Tipo | Uso |
+  |---|---|---|
+  | **LuckPerms** | Recomendado | Rangos y prefijos reales de grupos |
+  | **Vault** | Recomendado | Alternativa a LuckPerms para prefijos |
+  | **PlaceholderAPI** | Opcional | Soporte de placeholders `%luckperms_prefix%` / `%vault_prefix%` |
+
+  > Sin ninguno de los anteriores, el plugin usa los rangos definidos en `config.yml`.
 
   ---
 
@@ -39,7 +54,7 @@
   1. Descarga el JAR desde [Releases](https://github.com/Zerinho23/ZerDisguise/releases/latest)
   2. Colócalo en la carpeta `plugins/` de tu servidor
   3. Reinicia el servidor
-  4. Edita `plugins/ZerDisguise/config.yml` a tu gusto
+  4. Edita `plugins/ZerDisguise/config.yml` si lo necesitas
   5. Usa `/disguise reload` para aplicar cambios sin reiniciar
 
   **Requisitos:** Paper o Spigot **1.20 – 1.21+** · Java **17+**
@@ -50,17 +65,18 @@
 
   ```
   /disguise
-     └─► Menú principal
-           ├─ [Cabeza jugador]   → Muestra rango, disfraz actual y anterior
-           ├─ [Cabeza Base64]    → Cierra menú + aparece título "Escribe tu disfraz"
-           │                       └─► El jugador escribe el nombre en el chat
-           │                             └─► Menú de confirmación
-           │                                   ├─ [Cabeza del objetivo]
-           │                                   ├─ [Selector de rangos]  ← elige Default/VIP/Admin
-           │                                   ├─ [Cambiar nombre]      ← vuelve al chat
-           │                                   ├─ [Confirmar]           ← aplica el disfraz
-           │                                   └─ [Volver]              ← menú principal
-           └─ [Remover disfraz]  → Quita el disfraz actual (solo si está activo)
+     └─► Menú principal (54 slots)
+           ├─ [Cabeza jugador]        → Muestra rango real, disfraz actual y anterior
+           ├─ [Cabeza Base64]         → Prompt de chat "Escribe tu disfraz"
+           │                               └─► Menú de confirmación
+           │                                     ├─ [Cabeza preview]
+           │                                     ├─ [Selector de rangos LP/Vault]
+           │                                     ├─ [Cambiar nombre]
+           │                                     ├─ [Confirmar] ← aplica nombre + skin + rango
+           │                                     └─ [Volver]
+           ├─ [Remover disfraz]       → Quita el disfraz actual
+           ├─ [Jugadores online x18] → Clic directo = disfraz instantáneo con su skin
+           └─ [← Página / Página →]  → Paginación cuando hay más de 18 jugadores
   ```
 
   ---
@@ -85,39 +101,9 @@
   | `zerdisguise.use` | Usar el menú de disfraces | Todos |
   | `zerdisguise.others` | Abrir el menú de otro jugador | OP |
   | `zerdisguise.reload` | Recargar configuración | OP |
-  | `zerdisguise.rank.default` | Seleccionar rango Default | Todos |
-  | `zerdisguise.rank.vip` | Seleccionar rango VIP | OP |
-  | `zerdisguise.rank.admin` | Seleccionar rango Admin | OP |
+  | `zerdisguise.rank.*` | Seleccionar cualquier rango | OP |
 
-  ---
-
-  ## 👑 Rangos
-
-  Los rangos son completamente configurables en `config.yml`:
-
-  ```yaml
-  ranks:
-    default:
-      name: "Default"
-      color: "&7"
-      prefix: "&7[Default]&r"
-      permission: zerdisguise.rank.default
-      material: STONE
-    vip:
-      name: "VIP"
-      color: "&a"
-      prefix: "&a[VIP]&r"
-      permission: zerdisguise.rank.vip
-      material: EMERALD
-    admin:
-      name: "Admin"
-      color: "&c"
-      prefix: "&c[Admin]&r"
-      permission: zerdisguise.rank.admin
-      material: NETHER_STAR
-  ```
-
-  Puedes agregar o quitar rangos libremente. El rango `default` se asigna automáticamente si el jugador no selecciona ninguno.
+  > Con LuckPerms o Vault los rangos disponibles en el menú se toman **directamente de los grupos del servidor**, sin necesidad de configurarlos en `config.yml`.
 
   ---
 
