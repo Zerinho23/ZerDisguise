@@ -1,0 +1,133 @@
+# ╔══════════════════════════════════════════════════╗
+# ║           ZerDisguise  ·  menu.yml              ║
+# ║  Personaliza el menú interactivo a tu gusto.    ║
+# ╚══════════════════════════════════════════════════╝
+#
+# Colores de texto: &0-&f, &l (negrita), &k-&o, &#RRGGBB (hex)
+# Materiales: nombres exactos de Material de Bukkit (en mayúsculas)
+# Slots: 0-53 para un inventario de 54 (6 filas × 9 columnas)
+#
+# ┌───────────────────────────────────────────────┐
+# │  Fila 0 →  slots  0 -  8   (borde superior)  │
+# │  Fila 1 →  slots  9 - 17   (controles)        │
+# │  Fila 2 →  slots 18 - 26   (divisor)          │
+# │  Filas 3-4 → slots 27 - 44 (jugadores online) │
+# │  Fila 5 →  slots 45 - 53   (navegación)       │
+# └───────────────────────────────────────────────┘
+
+# ── Títulos ──────────────────────────────────────────────────────
+titles:
+  main:    "&8» &#CC88FFZerDisguise &8«"
+  confirm: "&8» &#CC88FF&lConfirmar disfraz &8«"
+
+# ── Materiales del diseño del marco ──────────────────────────────
+# border  → bordes superior e inferior (arriba y abajo)
+# filler  → relleno de espacios vacíos
+# divider → barra divisora central (fila 2)
+# corner  → esquinas del marco
+design:
+  border:  GRAY_STAINED_GLASS_PANE
+  filler:  BLACK_STAINED_GLASS_PANE
+  divider: PURPLE_STAINED_GLASS_PANE
+  corner:  CYAN_STAINED_GLASS_PANE
+
+# ── Botones del menú principal ────────────────────────────────────
+buttons:
+
+  # Botón "Escribir nombre" (slot 13 por defecto)
+  write:
+    material: NAME_TAG
+    slot: 13
+    name: "&#CC88FF&l✦ Escribir nombre"
+    lore:
+      - "&7Escribe el nombre de cualquier jugador de Minecraft."
+      - ""
+      - "&8Nota&8: &7el nombre debe existir en Mojang."
+      - ""
+      - "&#FFDD00&l» &eHaz clic para comenzar"
+
+  # Botón "Quitar disfraz" (slot 17 por defecto — solo visible si hay disfraz activo)
+  remove:
+    material: BARRIER
+    slot: 17
+    name: "&c&l✖ Quitar disfraz"
+    lore:
+      - "&7Elimina tu disfraz actual"
+      - "&7y restaura tu apariencia original."
+      - ""
+      - "&c&l» &cHaz clic para remover"
+
+  # Etiqueta central del divisor
+  label:
+    material: NETHER_STAR
+    slot: 22
+    name: "&#CC88FF&l✦ Jugadores en línea"
+    lore:
+      - "&8▸ &7Haz clic en una cabeza para"
+      - "&8  &7ponerte su nombre y skin."
+      - "&8▸ &7Se aplica instantáneamente."
+
+  # Botón página anterior (slot 46)
+  prev-page:
+    material: SPECTRAL_ARROW
+    slot: 46
+    name: "&e&l◄ Página anterior"
+
+  # Botón página siguiente (slot 52)
+  next-page:
+    material: SPECTRAL_ARROW
+    slot: 52
+    name: "&e&lPágina siguiente ►"
+
+  # Indicador de página actual (slot 49)
+  page-info:
+    material: PAPER
+    slot: 49
+
+# ── Botones del menú de confirmación ────────────────────────────
+confirm-menu:
+
+  # Botón confirmar disfraz (slot 49)
+  confirm:
+    material: LIME_CONCRETE
+    slot: 49
+    name: "&a&l✔ Confirmar disfraz"
+
+  # Botón cambiar nombre (slot 46)
+  rename:
+    material: NAME_TAG
+    slot: 46
+    name: "&e&l✎ Cambiar nombre"
+    lore:
+      - "&7Escribe un nombre diferente"
+      - "&7en el chat."
+      - ""
+      - "&e&l» &eClic para cambiar"
+
+  # Botón volver (slot 52)
+  back:
+    material: ARROW
+    slot: 52
+    name: "&c&l◄ Volver"
+    lore:
+      - "&7Regresa al menú principal."
+      - ""
+      - "&c&l» &cClic para volver"
+
+# ── Colores de glass por rango (para el selector de rangos) ──────
+# Se pueden sobreescribir en config.yml en la sección "ranks"
+rank-glass-fallback:
+  - RED_STAINED_GLASS_PANE
+  - ORANGE_STAINED_GLASS_PANE
+  - YELLOW_STAINED_GLASS_PANE
+  - LIME_STAINED_GLASS_PANE
+  - GREEN_STAINED_GLASS_PANE
+  - CYAN_STAINED_GLASS_PANE
+  - LIGHT_BLUE_STAINED_GLASS_PANE
+  - BLUE_STAINED_GLASS_PANE
+  - PURPLE_STAINED_GLASS_PANE
+  - MAGENTA_STAINED_GLASS_PANE
+  - PINK_STAINED_GLASS_PANE
+  - WHITE_STAINED_GLASS_PANE
+  - BROWN_STAINED_GLASS_PANE
+  - GRAY_STAINED_GLASS_PANE

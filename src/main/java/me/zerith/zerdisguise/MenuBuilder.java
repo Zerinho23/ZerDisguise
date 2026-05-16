@@ -18,20 +18,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Construye los menus de ZerDisguise con diseño oscuro tipo panel informativo.
+ * Construye los menús de ZerDisguise.
+ * Todos los materiales, títulos y textos de botones se leen desde menu.yml via MenuConfig.
  *
- * Menu principal (54 slots):
- *   Fila 0  -> borde gris
- *   Fila 1  -> [Cabeza info][relleno][Escribir][relleno][Quitar]
- *   Fila 2  -> divisor oscuro + etiqueta central
- *   Filas 3-4 -> cabezas de jugadores online (18 por pagina)
- *   Fila 5  -> borde + [Anterior][relleno][Info pagina][relleno][Siguiente]
+ * Menú principal (54 slots):
+ *   Fila 0  → borde superior (esquinas del color corner)
+ *   Fila 1  → [Info jugador][relleno][Escribir][relleno][Quitar]
+ *   Fila 2  → divisor + etiqueta central
+ *   Filas 3-4 → cabezas de jugadores online (18 por página)
+ *   Fila 5  → borde + [Anterior][relleno][Página info][relleno][Siguiente]
  *
- * Menu de confirmacion (54 slots):
- *   Fila 0  -> borde + cabeza preview (slot 4)
- *   Filas 1-2 -> selector de rangos
- *   Filas 3-4 -> relleno
- *   Fila 5  -> borde + [Cambiar nombre][relleno][Confirmar][relleno][Volver]
+ * Menú de confirmación (54 slots):
+ *   Fila 0  → borde + cabeza preview (slot 4)
+ *   Filas 1-2 → selector de rangos
+ *   Filas 3-4 → relleno
+ *   Fila 5  → borde + [Cambiar nombre][relleno][Confirmar][relleno][Volver]
  */
 public class MenuBuilder {
 
@@ -42,28 +43,6 @@ public class MenuBuilder {
     public static NamespacedKey KEY_RANK;
     public static NamespacedKey KEY_DISGUISE;
     public static NamespacedKey KEY_PAGE;
-
-    private static final Material BORDER  = Material.GRAY_STAINED_GLASS_PANE;
-    private static final Material FILLER  = Material.BLACK_STAINED_GLASS_PANE;
-    private static final Material DIVIDER = Material.PURPLE_STAINED_GLASS_PANE;
-    private static final Material CORNER  = Material.CYAN_STAINED_GLASS_PANE;
-
-    private static final Material[] RANK_GLASS = {
-        Material.RED_STAINED_GLASS_PANE,
-        Material.ORANGE_STAINED_GLASS_PANE,
-        Material.YELLOW_STAINED_GLASS_PANE,
-        Material.LIME_STAINED_GLASS_PANE,
-        Material.GREEN_STAINED_GLASS_PANE,
-        Material.CYAN_STAINED_GLASS_PANE,
-        Material.LIGHT_BLUE_STAINED_GLASS_PANE,
-        Material.BLUE_STAINED_GLASS_PANE,
-        Material.PURPLE_STAINED_GLASS_PANE,
-        Material.MAGENTA_STAINED_GLASS_PANE,
-        Material.PINK_STAINED_GLASS_PANE,
-        Material.WHITE_STAINED_GLASS_PANE,
-        Material.BROWN_STAINED_GLASS_PANE,
-        Material.GRAY_STAINED_GLASS_PANE,
-    };
 
     private final ZerDisguise plugin;
 
@@ -79,9 +58,9 @@ public class MenuBuilder {
         this.plugin = plugin;
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  MENU PRINCIPAL
-    // ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  MENÚ PRINCIPAL
+    // ─────────────────────────────────────────────────────────────
 
     public Inventory buildMainMenu(Player player) {
         return buildMainMenu(player, 0);
@@ -89,41 +68,46 @@ public class MenuBuilder {
 
     public Inventory buildMainMenu(Player player, int page) {
         ConfigManager cfg = plugin.getConfigManager();
+        MenuConfig    mc  = plugin.getMenuConfig();
+
         Inventory inv = Bukkit.createInventory(null, 54,
-                cfg.component("&8» &#CC88FFZerDisguise &8«"));
+                cfg.component(mc.getMainTitle()));
 
-        ItemStack border  = glass(BORDER, "");
-        ItemStack filler  = glass(FILLER, "");
-        ItemStack divider = glass(DIVIDER, "");
-        ItemStack corner  = glass(CORNER, "");
+        ItemStack border  = glass(mc.getBorderMaterial(),  "");
+        ItemStack filler  = glass(mc.getFillerMaterial(),  "");
+        ItemStack divider = glass(mc.getDividerMaterial(), "");
+        ItemStack corner  = glass(mc.getCornerMaterial(),  "");
 
-        // Fila 0: esquinas cyan + borde gris
+        // ── Fila 0: borde superior ────────────────────────────────
         inv.setItem(0, corner);
         for (int i = 1; i <= 7; i++) inv.setItem(i, border);
         inv.setItem(8, corner);
 
-        // Fila 1: cabeza del jugador | relleno | escribir | relleno | quitar
-        inv.setItem(9,  buildPlayerInfoHead(player));
+        // ── Fila 1: cabeza del jugador, botones ──────────────────
+        inv.setItem(9, buildPlayerInfoHead(player));
         for (int i = 10; i <= 12; i++) inv.setItem(i, filler);
-        inv.setItem(13, buildWriteButton());
+        inv.setItem(mc.getWriteSlot(), buildWriteButton(mc));
         for (int i = 14; i <= 16; i++) inv.setItem(i, filler);
-        inv.setItem(17, plugin.getDisguiseManager().isDisguised(player)
-                ? buildRemoveButton(player) : glass(BORDER, ""));
+        inv.setItem(mc.getRemoveSlot(),
+                plugin.getDisguiseManager().isDisguised(player)
+                        ? buildRemoveButton(player, mc)
+                        : glass(mc.getBorderMaterial(), ""));
 
-        // Fila 2: divisor morado + etiqueta central
+        // ── Fila 2: divisor + etiqueta central ───────────────────
         for (int i = 18; i < 27; i++) inv.setItem(i, divider);
-        inv.setItem(22, buildLabel(
-                Material.NETHER_STAR,
-                "&#CC88FF&l✦ Jugadores en linea",
-                List.of(
-                    "&8▸ &7Haz clic en una cabeza para",
-                    "&8  &7ponerte su nombre y skin.",
-                    "&8▸ &7Se aplica instantaneamente."
-                )
+        inv.setItem(mc.getLabelSlot(), buildLabel(
+                mc.getLabelMaterial(),
+                mc.getLabelName(),
+                mc.getLabelLore().isEmpty()
+                        ? List.of(
+                            "&8▸ &7Haz clic en una cabeza para",
+                            "&8  &7ponerte su nombre y skin.",
+                            "&8▸ &7Se aplica instantáneamente.")
+                        : mc.getLabelLore()
         ));
 
-        // Filas 3-4: cabezas de jugadores online
-        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+        // ── Filas 3-4: cabezas de jugadores online ───────────────
+        List<Player> online    = new ArrayList<>(Bukkit.getOnlinePlayers());
         int total      = online.size();
         int totalPages = Math.max(1, (int) Math.ceil(total / (double) PLAYERS_PER_PAGE));
         int safePage   = Math.max(0, Math.min(page, totalPages - 1));
@@ -135,68 +119,66 @@ public class MenuBuilder {
         }
         while (slot <= 44) inv.setItem(slot++, filler);
 
-        // Fila 5: navegacion
+        // ── Fila 5: navegación ────────────────────────────────────
         inv.setItem(45, corner);
         for (int i = 46; i <= 53; i++) inv.setItem(i, border);
         inv.setItem(53, corner);
 
         if (safePage > 0) {
-            inv.setItem(46, navButton("prev_page", safePage - 1,
-                    "&e&l← Pagina anterior",
-                    List.of(
-                        "&8▸ &7Regresa a la pagina &f" + safePage,
-                        "&8▸ &7de &f" + totalPages + " &7en total."
-                    )
+            inv.setItem(mc.getPrevSlot(), navButton(
+                    "prev_page", safePage - 1, mc.getPrevMaterial(),
+                    mc.getPrevName(),
+                    List.of("&8▸ &7Regresa a la página &f" + safePage,
+                            "&8▸ &7de &f" + totalPages + " &7en total.")
             ));
         }
-        inv.setItem(49, buildLabel(Material.PAPER,
-                "&f&lPagina &e" + (safePage + 1) + " &8/ &e" + totalPages,
-                List.of(
-                    "&8▸ &7Jugadores online&8: &f" + total,
-                    "&8▸ &7Navega con las flechas."
-                )
+        inv.setItem(mc.getPageInfoSlot(), buildLabel(
+                mc.getPageInfoMaterial(),
+                "&f&lPágina &e" + (safePage + 1) + " &8/ &e" + totalPages,
+                List.of("&8▸ &7Jugadores online&8: &f" + total,
+                        "&8▸ &7Navega con las flechas.")
         ));
         if (safePage < totalPages - 1) {
-            inv.setItem(52, navButton("next_page", safePage + 1,
-                    "&e&lPagina siguiente →",
-                    List.of(
-                        "&8▸ &7Avanza a la pagina &f" + (safePage + 2),
-                        "&8▸ &7de &f" + totalPages + " &7en total."
-                    )
+            inv.setItem(mc.getNextSlot(), navButton(
+                    "next_page", safePage + 1, mc.getNextMaterial(),
+                    mc.getNextName(),
+                    List.of("&8▸ &7Avanza a la página &f" + (safePage + 2),
+                            "&8▸ &7de &f" + totalPages + " &7en total.")
             ));
         }
 
         return inv;
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  MENU DE CONFIRMACION
-    // ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  MENÚ DE CONFIRMACIÓN
+    // ─────────────────────────────────────────────────────────────
 
     public Inventory buildConfirmMenu(Player player, String disguiseName, String selectedRankId) {
         ConfigManager cfg = plugin.getConfigManager();
+        MenuConfig    mc  = plugin.getMenuConfig();
         RankProvider  rp  = plugin.getRankProvider();
 
         Inventory inv = Bukkit.createInventory(null, 54,
-                cfg.component("&8» &#CC88FF&lConfirmar disfraz &8«"));
+                cfg.component(mc.getConfirmTitle()));
 
-        ItemStack border = glass(BORDER, "");
-        ItemStack corner = glass(CORNER, "");
-        ItemStack filler = glass(FILLER, "");
+        ItemStack border = glass(mc.getBorderMaterial(), "");
+        ItemStack corner = glass(mc.getCornerMaterial(), "");
+        ItemStack filler = glass(mc.getFillerMaterial(), "");
 
-        // Fila 0: borde + cabeza de preview centrada en slot 4
+        // ── Fila 0: borde + cabeza preview ────────────────────────
         inv.setItem(0, corner);
         for (int i = 1; i <= 7; i++) inv.setItem(i, border);
         inv.setItem(8, corner);
         inv.setItem(4, buildPreviewHead(disguiseName, selectedRankId));
 
-        // Fila 1-2: selector de rangos (slots 10-16, 19-25)
-        inv.setItem(9, glass(DIVIDER, ""));
-        inv.setItem(17, glass(DIVIDER, ""));
-        inv.setItem(18, glass(DIVIDER, ""));
-        inv.setItem(26, glass(DIVIDER, ""));
+        // ── Filas 1-2: selector de rangos ─────────────────────────
+        inv.setItem(9,  glass(mc.getDividerMaterial(), ""));
+        inv.setItem(17, glass(mc.getDividerMaterial(), ""));
+        inv.setItem(18, glass(mc.getDividerMaterial(), ""));
+        inv.setItem(26, glass(mc.getDividerMaterial(), ""));
 
-        List<RankProvider.GroupEntry> groups = rp.getAllGroups();
+        List<RankProvider.GroupEntry> groups  = rp.getAllGroups();
         int[] rankSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
         for (int i = 0; i < Math.min(groups.size(), rankSlots.length); i++) {
             RankProvider.GroupEntry g = groups.get(i);
@@ -207,41 +189,39 @@ public class MenuBuilder {
             if (inv.getItem(i) == null) inv.setItem(i, filler);
         }
 
-        // Filas 3-4: relleno
+        // ── Filas 3-4: relleno ────────────────────────────────────
         for (int i = 27; i < 45; i++) inv.setItem(i, filler);
 
-        // Fila 5: botones de accion
+        // ── Fila 5: botones de acción ─────────────────────────────
         inv.setItem(45, corner);
         for (int i = 46; i <= 53; i++) inv.setItem(i, border);
         inv.setItem(53, corner);
 
-        inv.setItem(46, buildActionButton(Material.NAME_TAG, "rename",
-                disguiseName, selectedRankId,
-                "&e&l✎ Cambiar nombre",
-                List.of(
-                    "&8▸ &7Escribe un nombre diferente",
-                    "&8  &7en el chat.",
-                    "",
-                    "&e&l» &eClic para cambiar"
-                )
-        ));
-        inv.setItem(49, buildConfirmButton(disguiseName, selectedRankId));
-        inv.setItem(52, buildActionButton(Material.ARROW, "back",
-                disguiseName, selectedRankId,
-                "&c&l← Volver",
-                List.of(
-                    "&8▸ &7Regresa al menu principal.",
-                    "",
-                    "&c&l» &cClic para volver"
-                )
-        ));
+        List<String> renameLore = mc.getRenameLore().isEmpty()
+                ? List.of("&7Escribe un nombre diferente",
+                          "&7en el chat.", "",
+                          "&e&l» &eClic para cambiar")
+                : mc.getRenameLore();
+
+        List<String> backLore = mc.getBackLore().isEmpty()
+                ? List.of("&7Regresa al menú principal.", "",
+                          "&c&l» &cClic para volver")
+                : mc.getBackLore();
+
+        inv.setItem(mc.getRenameSlot(), buildActionButton(
+                mc.getRenameMaterial(), "rename", disguiseName, selectedRankId,
+                mc.getRenameName(), renameLore));
+        inv.setItem(mc.getConfirmBtnSlot(), buildConfirmButton(disguiseName, selectedRankId, mc));
+        inv.setItem(mc.getBackSlot(), buildActionButton(
+                mc.getBackMaterial(), "back", disguiseName, selectedRankId,
+                mc.getBackName(), backLore));
 
         return inv;
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  CONSTRUCTORES DE ITEMS
-    // ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  CONSTRUCTORES DE ÍTEMS
+    // ─────────────────────────────────────────────────────────────
 
     private ItemStack buildPlayerInfoHead(Player player) {
         ConfigManager   cfg = plugin.getConfigManager();
@@ -264,77 +244,77 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component("&#FFFFFF&l" + player.getName())));
 
         List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Tu perfil")));
-        lore.add(ni(cfg.component("&8├─────────────────")));
+        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8│ &8▸ &7Tu perfil");
+        addLoreLine(lore, cfg, "&8├─────────────────");
         lore.add(ni(cfg.componentAny("&8│ &8Rango&8:    " + realPrefix)));
-        lore.add(ni(cfg.component("&8│ &7Estado&8:   " + estado)));
-        lore.add(ni(cfg.component("&8│ &7Disfraz&8:  " + curName)));
-        lore.add(ni(cfg.component("&8│ &7Anterior&8: " + prevName)));
-        lore.add(ni(cfg.component("&8└─────────────────")));
+        addLoreLine(lore, cfg, "&8│ &7Estado&8:   " + estado);
+        addLoreLine(lore, cfg, "&8│ &7Disfraz&8:  " + curName);
+        addLoreLine(lore, cfg, "&8│ &7Anterior&8: " + prevName);
+        addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
         skull.setItemMeta(meta);
         return skull;
     }
 
-    private ItemStack buildWriteButton() {
+    private ItemStack buildWriteButton(MenuConfig mc) {
         ConfigManager cfg  = plugin.getConfigManager();
-        ItemStack     item = new ItemStack(Material.NAME_TAG);
+        ItemStack     item = new ItemStack(mc.getWriteMaterial());
         ItemMeta      meta = item.getItemMeta();
 
-        meta.displayName(ni(cfg.component("&#CC88FF&l✦ Escribir nombre")));
-        List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Escribe el nombre de cualquier")));
-        lore.add(ni(cfg.component("&8│ &7jugador de Minecraft.")));
-        lore.add(ni(cfg.component("&8│")));
-        lore.add(ni(cfg.component("&8│ &8Nota&8: &7el nombre debe existir")));
-        lore.add(ni(cfg.component("&8│ &7en los servidores de Mojang.")));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &#FFDD00&l» &eHaz clic para comenzar")));
-        lore.add(ni(cfg.component("&8└─────────────────")));
-        meta.lore(lore);
+        meta.displayName(ni(cfg.component(mc.getWriteName())));
+
+        List<String> rawLore = mc.getWriteLore().isEmpty()
+                ? List.of("&7Escribe el nombre de cualquier jugador de Minecraft.",
+                          "",
+                          "&8Nota&8: &7el nombre debe existir en Mojang.",
+                          "",
+                          "&#FFDD00&l» &eHaz clic para comenzar")
+                : mc.getWriteLore();
+
+        meta.lore(buildBoxedLore(rawLore, cfg));
         meta.getPersistentDataContainer().set(KEY_ACTION, PersistentDataType.STRING, "write");
         addGlow(meta);
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack buildRemoveButton(Player player) {
+    private ItemStack buildRemoveButton(Player player, MenuConfig mc) {
         ConfigManager cfg = plugin.getConfigManager();
         DisguiseManager.DisguiseData cur = plugin.getDisguiseManager()
                 .getCurrent(player.getUniqueId());
         String curName = cur != null ? "&#CC88FF" + cur.disguiseName() : "&8ninguno";
 
-        ItemStack item = new ItemStack(Material.BARRIER);
+        ItemStack item = new ItemStack(mc.getRemoveMaterial());
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(ni(cfg.component("&c&l✖ Quitar disfraz")));
-        List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Elimina tu disfraz actual")));
-        lore.add(ni(cfg.component("&8│ &7y restaura tu apariencia.")));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &8Activo&8: " + curName)));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &c&l» &cClic para remover")));
-        lore.add(ni(cfg.component("&8└─────────────────")));
-        meta.lore(lore);
+        meta.displayName(ni(cfg.component(mc.getRemoveName())));
+
+        List<String> rawLore = mc.getRemoveLore().isEmpty()
+                ? List.of("&7Elimina tu disfraz actual",
+                          "&7y restaura tu apariencia original.",
+                          "",
+                          "&8Activo&8: " + curName,
+                          "",
+                          "&c&l» &cClic para remover")
+                : mc.getRemoveLore();
+
+        meta.lore(buildBoxedLore(rawLore, cfg));
         meta.getPersistentDataContainer().set(KEY_ACTION, PersistentDataType.STRING, "remove");
         item.setItemMeta(meta);
         return item;
     }
 
     private ItemStack buildOnlinePlayerHead(Player online) {
-        ConfigManager cfg = plugin.getConfigManager();
-        RankProvider  rp  = plugin.getRankProvider();
-        DisguiseManager dm = plugin.getDisguiseManager();
+        ConfigManager   cfg = plugin.getConfigManager();
+        RankProvider    rp  = plugin.getRankProvider();
+        DisguiseManager dm  = plugin.getDisguiseManager();
 
-        String rankId  = rp.getPlayerPrimaryGroup(online);
-        String prefix  = rp.getGroupPrefix(rankId);
+        String rankId = rp.getPlayerPrimaryGroup(online);
+        String prefix = rp.getGroupPrefix(rankId);
         if (prefix == null || prefix.isBlank()) prefix = "&8[&7Default&8]";
 
         boolean isDsg  = dm.isDisguised(online);
-        String estado  = isDsg ? "&6● Disfrazado" : "&a● Online";
+        String  estado = isDsg ? "&6● Disfrazado" : "&a● Online";
 
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta  = (SkullMeta) skull.getItemMeta();
@@ -342,14 +322,14 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component("&#CC88FF&l" + online.getName())));
 
         List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
+        addLoreLine(lore, cfg, "&8┌─────────────────");
         lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + prefix)));
-        lore.add(ni(cfg.component("&8│ &7Ping&8:   &f" + online.getPing() + "ms")));
-        lore.add(ni(cfg.component("&8│ &7Estado&8: " + estado)));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &#FFDD00&l» &eClic para disfrazarte")));
-        lore.add(ni(cfg.component("&8│ &7como &d" + online.getName())));
-        lore.add(ni(cfg.component("&8└─────────────────")));
+        addLoreLine(lore, cfg, "&8│ &7Ping&8:   &f" + online.getPing() + "ms");
+        addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &#FFDD00&l» &eClic para disfrazarte");
+        addLoreLine(lore, cfg, "&8│ &7como &d" + online.getName());
+        addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
 
         var pdc = meta.getPersistentDataContainer();
@@ -378,14 +358,14 @@ public class MenuBuilder {
 
         meta.displayName(ni(cfg.component("&#CC88FF&l" + disguiseName)));
         List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Vista previa del disfraz")));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &8Nombre&8: &d" + disguiseName)));
-        lore.add(ni(cfg.component("&8│ &8Rango&8:  &f" + rankDisplay)));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Selecciona el rango abajo.")));
-        lore.add(ni(cfg.component("&8└─────────────────")));
+        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Vista previa del disfraz");
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
+        addLoreLine(lore, cfg, "&8│ &8Rango&8:  &f" + rankDisplay);
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Selecciona el rango abajo.");
+        addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
         addGlow(meta);
         skull.setItemMeta(meta);
@@ -395,7 +375,9 @@ public class MenuBuilder {
     private ItemStack buildRankButton(RankProvider.GroupEntry group,
                                       String disguiseName, boolean selected, int idx) {
         ConfigManager cfg = plugin.getConfigManager();
-        Material      mat = RANK_GLASS[idx % RANK_GLASS.length];
+        MenuConfig    mc  = plugin.getMenuConfig();
+        Material[]    fallback = mc.getRankGlassFallback();
+        Material      mat = fallback[idx % fallback.length];
         for (ConfigManager.RankEntry r : cfg.getRanks()) {
             if (r.id().equalsIgnoreCase(group.id())) { mat = r.glass(); break; }
         }
@@ -405,14 +387,13 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.componentAny(group.displayPrefix() + " &7" + capitalize(group.id()))));
 
         List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
+        addLoreLine(lore, cfg, "&8┌─────────────────");
         if (selected) {
-            lore.add(ni(cfg.component("&8│ &a&l✔ Seleccionado")));
+            addLoreLine(lore, cfg, "&8│ &a&l✔ &aSeleccionado");
         } else {
-            lore.add(ni(cfg.component("&8│ &7Haz clic para elegir")));
-            lore.add(ni(cfg.component("&8│ &7este rango.")));
+            addLoreLine(lore, cfg, "&8│ &7Haz clic para elegir este rango.");
         }
-        lore.add(ni(cfg.component("&8└─────────────────")));
+        addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
 
         var pdc = meta.getPersistentDataContainer();
@@ -424,9 +405,9 @@ public class MenuBuilder {
         return item;
     }
 
-    private ItemStack buildConfirmButton(String disguiseName, String rankId) {
+    private ItemStack buildConfirmButton(String disguiseName, String rankId, MenuConfig mc) {
         ConfigManager cfg = plugin.getConfigManager();
-        ItemStack item = new ItemStack(Material.LIME_CONCRETE);
+        ItemStack item = new ItemStack(mc.getConfirmBtnMaterial());
         ItemMeta  meta = item.getItemMeta();
 
         String rankDisplay = rankId;
@@ -434,17 +415,17 @@ public class MenuBuilder {
             if (r.id().equalsIgnoreCase(rankId)) { rankDisplay = r.color() + r.name(); break; }
         }
 
-        meta.displayName(ni(cfg.component("&a&l✔ Confirmar disfraz")));
+        meta.displayName(ni(cfg.component(mc.getConfirmBtnName())));
         List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        lore.add(ni(cfg.component("&8│ &7Aplicara lo siguiente&8:")));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &8Nombre&8: &d" + disguiseName)));
-        lore.add(ni(cfg.component("&8│ &8Rango&8:  &f" + rankDisplay)));
-        lore.add(ni(cfg.component("&8│ &8Skin&8:   &7La de " + disguiseName)));
-        lore.add(ni(cfg.component("&8├─────────────────")));
-        lore.add(ni(cfg.component("&8│ &a&l» &aHaz clic para aplicar")));
-        lore.add(ni(cfg.component("&8└─────────────────")));
+        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Aplicará lo siguiente&8:");
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
+        addLoreLine(lore, cfg, "&8│ &8Rango&8:  &f" + rankDisplay);
+        addLoreLine(lore, cfg, "&8│ &8Skin&8:   &7La de &d" + disguiseName);
+        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8│ &a&l» &aHaz clic para aplicar");
+        addLoreLine(lore, cfg, "&8└─────────────────");
         meta.lore(lore);
 
         var pdc = meta.getPersistentDataContainer();
@@ -463,19 +444,12 @@ public class MenuBuilder {
         ItemStack     item = new ItemStack(mat);
         ItemMeta      meta = item.getItemMeta();
         meta.displayName(ni(cfg.component(name)));
-
-        List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        for (String l : loreTxt) {
-            lore.add(ni(l.isEmpty() ? Component.empty() : cfg.component("&8│ " + l)));
-        }
-        lore.add(ni(cfg.component("&8└─────────────────")));
-        meta.lore(lore);
+        meta.lore(buildBoxedLore(loreTxt, cfg));
 
         var pdc = meta.getPersistentDataContainer();
         pdc.set(KEY_ACTION,   PersistentDataType.STRING, action);
         pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName != null ? disguiseName : "");
-        pdc.set(KEY_RANK,     PersistentDataType.STRING, rankId      != null ? rankId       : "");
+        pdc.set(KEY_RANK,     PersistentDataType.STRING, rankId       != null ? rankId       : "");
         item.setItemMeta(meta);
         return item;
     }
@@ -485,29 +459,18 @@ public class MenuBuilder {
         ItemStack     item = new ItemStack(mat);
         ItemMeta      meta = item.getItemMeta();
         meta.displayName(ni(cfg.component(name)));
-        List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        for (String l : loreTxt) {
-            lore.add(ni(l.isEmpty() ? Component.empty() : cfg.component("&8│ " + l)));
-        }
-        lore.add(ni(cfg.component("&8└─────────────────")));
-        meta.lore(lore);
+        meta.lore(buildBoxedLore(loreTxt, cfg));
         item.setItemMeta(meta);
         return item;
     }
 
-    private ItemStack navButton(String action, int targetPage, String name, List<String> loreTxt) {
+    private ItemStack navButton(String action, int targetPage,
+                                Material mat, String name, List<String> loreTxt) {
         ConfigManager cfg  = plugin.getConfigManager();
-        ItemStack     item = new ItemStack(Material.SPECTRAL_ARROW);
+        ItemStack     item = new ItemStack(mat);
         ItemMeta      meta = item.getItemMeta();
         meta.displayName(ni(cfg.component(name)));
-        List<Component> lore = new ArrayList<>();
-        lore.add(ni(cfg.component("&8┌─────────────────")));
-        for (String l : loreTxt) {
-            lore.add(ni(l.isEmpty() ? Component.empty() : cfg.component("&8│ " + l)));
-        }
-        lore.add(ni(cfg.component("&8└─────────────────")));
-        meta.lore(lore);
+        meta.lore(buildBoxedLore(loreTxt, cfg));
         var pdc = meta.getPersistentDataContainer();
         pdc.set(KEY_ACTION, PersistentDataType.STRING, action);
         pdc.set(KEY_PAGE,   PersistentDataType.INTEGER, targetPage);
@@ -515,16 +478,34 @@ public class MenuBuilder {
         return item;
     }
 
-    // ─────────────────────────────────────────────────────────
-    //  HELPERS
-    // ─────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────
+    //  UTILIDADES
+    // ─────────────────────────────────────────────────────────────
 
-    private ItemStack glass(Material mat, String name) {
+    /** Construye un lore encuadrado con bordes ┌───┐ automáticamente. */
+    private List<Component> buildBoxedLore(List<String> lines, ConfigManager cfg) {
+        List<Component> result = new ArrayList<>();
+        result.add(ni(cfg.component("&8┌─────────────────")));
+        for (String line : lines) {
+            if (line == null || line.isEmpty()) {
+                result.add(ni(cfg.component("&8│")));
+            } else {
+                result.add(ni(cfg.component("&8│ " + line)));
+            }
+        }
+        result.add(ni(cfg.component("&8└─────────────────")));
+        return result;
+    }
+
+    private void addLoreLine(List<Component> lore, ConfigManager cfg, String text) {
+        lore.add(ni(cfg.component(text)));
+    }
+
+    private static ItemStack glass(Material mat, String name) {
         ItemStack item = new ItemStack(mat);
         ItemMeta  meta = item.getItemMeta();
-        meta.displayName(name.isEmpty()
-                ? Component.empty()
-                : plugin.getConfigManager().component(name).decoration(TextDecoration.ITALIC, false));
+        meta.displayName(Component.empty());
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
         item.setItemMeta(meta);
         return item;
     }
@@ -534,8 +515,10 @@ public class MenuBuilder {
     }
 
     private static void addGlow(ItemMeta meta) {
-        meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
-        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        // UNBREAKING accesible por clave en Paper 1.20-1.21+
+        Enchantment ench = Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"));
+        if (ench != null) meta.addEnchant(ench, 1, true);
+        meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES);
     }
 
     private static String capitalize(String s) {
