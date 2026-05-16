@@ -44,6 +44,7 @@ public class ZerDisguise extends JavaPlugin {
 
         configManager   = new ConfigManager(this);
         configManager.loadConfig();
+        MenuBuilder.initKeys(this);
 
         rankProvider    = new RankProvider(this);
         rankProvider.initialize();
