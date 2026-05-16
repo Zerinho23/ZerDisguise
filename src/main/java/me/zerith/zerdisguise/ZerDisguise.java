@@ -32,6 +32,7 @@ public class ZerDisguise extends JavaPlugin {
 
     private static ZerDisguise instance;
     private ConfigManager   configManager;
+    private RankProvider    rankProvider;
     private DisguiseManager disguiseManager;
     private SkinFetcher     skinFetcher;
     private SkinApplier     skinApplier;
@@ -43,6 +44,9 @@ public class ZerDisguise extends JavaPlugin {
 
         configManager   = new ConfigManager(this);
         configManager.loadConfig();
+
+        rankProvider    = new RankProvider(this);
+        rankProvider.initialize();
 
         skinFetcher     = new SkinFetcher(this);
         skinApplier     = new SkinApplier(this);
@@ -99,6 +103,7 @@ public class ZerDisguise extends JavaPlugin {
 
     public static ZerDisguise getInstance()       { return instance; }
     public ConfigManager    getConfigManager()    { return configManager; }
+    public RankProvider     getRankProvider()     { return rankProvider; }
     public DisguiseManager  getDisguiseManager()  { return disguiseManager; }
     public SkinFetcher      getSkinFetcher()      { return skinFetcher; }
     public SkinApplier      getSkinApplier()      { return skinApplier; }
