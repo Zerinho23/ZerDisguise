@@ -66,16 +66,21 @@ public class ConfigManager {
             String prefix     = section.getString(key + ".prefix",     "");
             String permission = section.getString(key + ".permission", "zerdisguise.rank." + key);
             String matStr     = section.getString(key + ".material",   "STONE");
+            String glassStr   = section.getString(key + ".glass",      "PURPLE_STAINED_GLASS_PANE");
             Material mat;
+            Material glass;
             try { mat = Material.valueOf(matStr.toUpperCase()); }
             catch (IllegalArgumentException e) { mat = Material.STONE; }
-            list.add(new RankEntry(key, name, color, prefix, permission, mat));
+            try { glass = Material.valueOf(glassStr.toUpperCase()); }
+            catch (IllegalArgumentException e) { glass = Material.PURPLE_STAINED_GLASS_PANE; }
+            list.add(new RankEntry(key, name, color, prefix, permission, mat, glass));
         }
         return list;
     }
 
     public record RankEntry(String id, String name, String color,
-                            String prefix, String permission, Material material) {}
+                            String prefix, String permission,
+                            Material material, Material glass) {}
 
     // ── Messages ─────────────────────────────────────────────────────────────
 
@@ -90,12 +95,38 @@ public class ConfigManager {
 
     // ── Color parsing ─────────────────────────────────────────────────────────
 
+    /** Parses a string that uses &-codes and/or &#RRGGBB hex. */
     public Component component(String text) {
+        if (text == null) return net.kyori.adventure.text.Component.empty();
         return SECTION_HEX.deserialize(toSectionFormat(text));
     }
 
+    /**
+     * Parses a string that may use §-codes (from Vault / LuckPerms)
+     * OR &-codes (from config). Safe to call with either format.
+     */
+    public Component componentAny(String text) {
+        if (text == null || text.isEmpty())
+            return net.kyori.adventure.text.Component.empty();
+        // §-format strings from Vault/LP — deserialize directly
+        if (text.contains("\u00A7")) {
+            return SECTION_HEX.deserialize(text);
+        }
+        // &-format from config
+        return component(text);
+    }
+
+    /** Returns a plain colorized legacy string (§ codes). */
     public String colorize(String text) {
         return LegacyComponentSerializer.legacySection().serialize(component(text));
+    }
+
+    /** Strips all color codes from a string (for length calculations). */
+    public String strip(String text) {
+        if (text == null) return "";
+        return text.replaceAll("(?i)[&§][0-9A-FK-ORX]", "")
+                   .replaceAll("(?i)[&§]x([&§][0-9A-F]){6}", "")
+                   .replaceAll("&#[0-9A-Fa-f]{6}", "");
     }
 
     private static String toSectionFormat(String text) {
