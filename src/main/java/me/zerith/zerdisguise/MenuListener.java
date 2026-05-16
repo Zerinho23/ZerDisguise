@@ -1,130 +1,105 @@
 package me.zerith.zerdisguise;
 
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.inventory.ItemStack;
+  import org.bukkit.entity.Player;
+  import org.bukkit.event.EventHandler;
+  import org.bukkit.event.Listener;
+  import org.bukkit.event.inventory.InventoryClickEvent;
+  import org.bukkit.inventory.ItemStack;
+  import org.bukkit.inventory.meta.ItemMeta;
+  import org.bukkit.persistence.PersistentDataType;
 
-public class MenuListener implements Listener {
+  public class MenuListener implements Listener {
 
-    private final ZerDisguise plugin;
+      private final ZerDisguise plugin;
 
-    public MenuListener(ZerDisguise plugin) {
-        this.plugin = plugin;
-    }
+      public MenuListener(ZerDisguise plugin) {
+          this.plugin = plugin;
+      }
 
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent e) {
-        if (!(e.getWhoClicked() instanceof Player player)) return;
+      @EventHandler
+      public void onInventoryClick(InventoryClickEvent e) {
+          if (!(e.getWhoClicked() instanceof Player player)) return;
 
-        String title = plugin.getConfigManager().colorize(
-                plugin.getConfigManager().getMenuTitle());
+          // Obtener el título del inventario como legacy string
+          String invTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                  .legacySection().serialize(e.getView().title());
 
-        String invTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().serialize(e.getView().title());
+          boolean isMainMenu    = invTitle.contains("ZerDisguise") && !invTitle.contains("Confirmar");
+          boolean isConfirmMenu = invTitle.contains("Confirmar disfraz");
 
-        boolean isMainMenu    = invTitle.contains("ZerDisguise") && !invTitle.contains("Confirmar");
-        boolean isConfirmMenu = invTitle.contains("Confirmar disfraz");
+          if (!isMainMenu && !isConfirmMenu) return;
+          e.setCancelled(true);
 
-        if (!isMainMenu && !isConfirmMenu) return;
+          ItemStack clicked = e.getCurrentItem();
+          if (clicked == null || !clicked.hasItemMeta()) return;
 
-        // Guarda de permiso: si el jugador perdió el permiso con el inventario abierto
-        if (!player.hasPermission("zerdisguise.use")) {
-            player.closeInventory();
-            return;
-        }
+          ItemMeta meta = clicked.getItemMeta();
+          if (meta == null) return;
 
-        e.setCancelled(true);
-        ItemStack clicked = e.getCurrentItem();
-        if (clicked == null || clicked.getType().isAir()) return;
+          // Leer la acción del PDC
+          var pdc    = meta.getPersistentDataContainer();
+          String action  = pdc.getOrDefault(MenuBuilder.KEY_ACTION,  PersistentDataType.STRING, "");
+          String rankId  = pdc.getOrDefault(MenuBuilder.KEY_RANK,    PersistentDataType.STRING, "");
+          String disguise= pdc.getOrDefault(MenuBuilder.KEY_DISGUISE,PersistentDataType.STRING, "");
+          String targetPl= pdc.getOrDefault(MenuBuilder.KEY_PLAYER,  PersistentDataType.STRING, "");
 
-        ConfigManager   cfg = plugin.getConfigManager();
-        DisguiseManager dm  = plugin.getDisguiseManager();
-        MenuBuilder     mb  = new MenuBuilder(plugin);
-        ChatListener    cl  = plugin.getChatListener();
-        int slot = e.getSlot();
+          ConfigManager cfg = plugin.getConfigManager();
 
-        if (isMainMenu) {
-            switch (slot) {
-                case 13 -> {
-                    // Custom head — open chat input mode
-                    player.closeInventory();
-                    player.sendTitle(
-                            cfg.colorize(cfg.getPromptTitle()),
-                            cfg.colorize(cfg.getPromptSubtitle()),
-                            cfg.getPromptFadeIn(),
-                            cfg.getPromptStay(),
-                            cfg.getPromptFadeOut());
-                    player.sendMessage(cfg.getPrefix().append(
-                            cfg.component(cfg.getMsgWriteDisguise())));
-                    cl.awaitInput(player);
-                }
-                case 17 -> {
-                    // Remove disguise
-                    if (dm.isDisguised(player)) {
-                        dm.removeDisguise(player);
-                    }
-                    player.openInventory(mb.buildMainMenu(player));
-                }
-            }
-            return;
-        }
+          switch (action) {
 
-        // ── Confirm menu ──────────────────────────────────────────────────────
-        if (isConfirmMenu) {
-            String[] state = cl.getPendingConfirm(player);
-            if (state == null) { player.closeInventory(); return; }
-            String disguiseName = state[0];
-            String rankId       = state[1];
+              // ── Abrir chat para escribir el nombre del disfraz ────────────────
+              case "write" -> {
+                  player.closeInventory();
+                  plugin.getChatListener().startPrompt(player);
+              }
 
-            switch (slot) {
-                case 20 -> {
-                    // Change name — go back to write mode
-                    player.closeInventory();
-                    player.sendTitle(
-                            cfg.colorize(cfg.getPromptTitle()),
-                            cfg.colorize(cfg.getPromptSubtitle()),
-                            cfg.getPromptFadeIn(), cfg.getPromptStay(), cfg.getPromptFadeOut());
-                    player.sendMessage(cfg.getPrefix().append(
-                            cfg.component(cfg.getMsgWriteDisguise())));
-                    cl.awaitInput(player);
-                }
-                case 22 -> {
-                    // Confirm — close inventory first, then start async skin fetch
-                    cl.clearPendingConfirm(player);
-                    player.closeInventory();
-                    dm.applyDisguise(player, disguiseName, rankId);
-                }
-                case 24 -> {
-                    // Back to main menu
-                    cl.clearPendingConfirm(player);
-                    player.openInventory(mb.buildMainMenu(player));
-                }
-                default -> {
-                    // Rank selection slots 10–16
-                    if (slot >= 10 && slot <= 16) {
-                        int rankIdx = slot - 10;
-                        var ranks   = cfg.getRanks();
-                        if (rankIdx < ranks.size()) {
-                            ConfigManager.RankEntry rank = ranks.get(rankIdx);
-                            if (!player.hasPermission(rank.permission())) {
-                                player.sendMessage(cfg.getPrefix().append(
-                                        cfg.component(cfg.getMsgNoPermission())));
-                                return;
-                            }
-                            cl.setPendingConfirm(player, disguiseName, rank.id());
-                            player.openInventory(mb.buildConfirmMenu(player, disguiseName, rank.id()));
-                        }
-                    }
-                }
-            }
-        }
-    }
+              // ── Remover disfraz ───────────────────────────────────────────────
+              case "remove" -> {
+                  player.closeInventory();
+                  plugin.getDisguiseManager().removeDisguise(player);
+              }
 
-    @EventHandler
-    public void onPlayerDeath(PlayerDeathEvent e) {
-        plugin.getDisguiseManager().clearOnDeath(e.getEntity());
-    }
-}
+              // ── Disfraz instantáneo desde cabeza de jugador online ────────────
+              case "instant_disguise" -> {
+                  if (targetPl.isBlank()) return;
+                  if (player.getName().equals(targetPl)) return; // no disfrazarse de sí mismo
+
+                  player.closeInventory();
+                  // rankId ya viene del grupo primario del jugador objetivo
+                  String rank = rankId.isBlank() ? "default" : rankId;
+                  plugin.getDisguiseManager().applyDisguise(player, targetPl, rank);
+              }
+
+              // ── Seleccionar rango en menú de confirmación ─────────────────────
+              case "select_rank" -> {
+                  if (disguise.isBlank() || rankId.isBlank()) return;
+                  // Reconstruir el menú con el nuevo rango seleccionado
+                  MenuBuilder mb = new MenuBuilder(plugin);
+                  player.openInventory(mb.buildConfirmMenu(player, disguise, rankId));
+              }
+
+              // ── Confirmar disfraz ─────────────────────────────────────────────
+              case "confirm" -> {
+                  if (disguise.isBlank()) return;
+                  String rank = rankId.isBlank() ? "default" : rankId;
+                  player.closeInventory();
+                  plugin.getDisguiseManager().applyDisguise(player, disguise, rank);
+              }
+
+              // ── Volver al menú principal ──────────────────────────────────────
+              case "back" -> {
+                  MenuBuilder mb = new MenuBuilder(plugin);
+                  player.openInventory(mb.buildMainMenu(player));
+              }
+
+              // ── Cambiar nombre (prompt de chat) ───────────────────────────────
+              case "rename" -> {
+                  player.closeInventory();
+                  plugin.getChatListener().startPrompt(player);
+              }
+
+              default -> {}
+          }
+      }
+  }
+  
