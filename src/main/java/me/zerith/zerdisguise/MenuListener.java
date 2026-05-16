@@ -20,29 +20,30 @@ package me.zerith.zerdisguise;
       public void onInventoryClick(InventoryClickEvent e) {
           if (!(e.getWhoClicked() instanceof Player player)) return;
 
-          String invTitle = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+          // Serializar el título del inventario a texto plano para comparar
+          String title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
                   .legacySection().serialize(e.getView().title());
 
-          boolean isMainMenu    = invTitle.contains("ZerDisguise") && !invTitle.contains("Confirmar");
-          boolean isConfirmMenu = invTitle.contains("Confirmar disfraz");
+          boolean isMain    = title.contains("ZerDisguise");
+          boolean isConfirm = title.contains("Confirmar disfraz");
+          if (!isMain && !isConfirm) return;
 
-          if (!isMainMenu && !isConfirmMenu) return;
           e.setCancelled(true);
 
           ItemStack clicked = e.getCurrentItem();
           if (clicked == null || !clicked.hasItemMeta()) return;
-
           ItemMeta meta = clicked.getItemMeta();
           if (meta == null) return;
 
-          var    pdc     = meta.getPersistentDataContainer();
-          String action  = pdc.getOrDefault(MenuBuilder.KEY_ACTION,  PersistentDataType.STRING,  "");
-          String rankId  = pdc.getOrDefault(MenuBuilder.KEY_RANK,    PersistentDataType.STRING,  "");
-          String disguise= pdc.getOrDefault(MenuBuilder.KEY_DISGUISE,PersistentDataType.STRING,  "");
-          String targetPl= pdc.getOrDefault(MenuBuilder.KEY_PLAYER,  PersistentDataType.STRING,  "");
-          int    page    = pdc.getOrDefault(MenuBuilder.KEY_PAGE,    PersistentDataType.INTEGER,  0);
+          // Protección: las claves deben estar inicializadas
+          if (MenuBuilder.KEY_ACTION == null) return;
 
-          ConfigManager cfg = plugin.getConfigManager();
+          var    pdc      = meta.getPersistentDataContainer();
+          String action   = pdc.getOrDefault(MenuBuilder.KEY_ACTION,   PersistentDataType.STRING,  "");
+          String rankId   = pdc.getOrDefault(MenuBuilder.KEY_RANK,     PersistentDataType.STRING,  "");
+          String disguise = pdc.getOrDefault(MenuBuilder.KEY_DISGUISE,  PersistentDataType.STRING,  "");
+          String target   = pdc.getOrDefault(MenuBuilder.KEY_PLAYER,   PersistentDataType.STRING,  "");
+          int    page     = pdc.getOrDefault(MenuBuilder.KEY_PAGE,     PersistentDataType.INTEGER,  0);
 
           switch (action) {
 
@@ -50,9 +51,12 @@ package me.zerith.zerdisguise;
               case "write" -> {
                   player.closeInventory();
                   plugin.getChatListener().awaitInput(player);
+                  player.sendMessage(plugin.getConfigManager().getPrefix().append(
+                          plugin.getConfigManager().component(
+                                  plugin.getConfigManager().getMsgWriteDisguise())));
               }
 
-              // ── Remover disfraz ───────────────────────────────────────────────
+              // ── Remover disfraz activo ────────────────────────────────────────
               case "remove" -> {
                   player.closeInventory();
                   plugin.getDisguiseManager().removeDisguise(player);
@@ -60,17 +64,17 @@ package me.zerith.zerdisguise;
 
               // ── Disfraz instantáneo desde cabeza de jugador online ────────────
               case "instant_disguise" -> {
-                  if (targetPl.isBlank() || player.getName().equals(targetPl)) return;
+                  if (target.isBlank() || player.getName().equalsIgnoreCase(target)) return;
                   player.closeInventory();
-                  String rank = rankId.isBlank() ? "default" : rankId;
-                  plugin.getDisguiseManager().applyDisguise(player, targetPl, rank);
+                  plugin.getDisguiseManager().applyDisguise(player, target,
+                          rankId.isBlank() ? "default" : rankId);
               }
 
-              // ── Seleccionar rango en menú de confirmación ─────────────────────
+              // ── Cambiar rango en menú de confirmación ─────────────────────────
               case "select_rank" -> {
                   if (disguise.isBlank() || rankId.isBlank()) return;
-                  MenuBuilder mb = new MenuBuilder(plugin);
-                  player.openInventory(mb.buildConfirmMenu(player, disguise, rankId));
+                  player.openInventory(new MenuBuilder(plugin)
+                          .buildConfirmMenu(player, disguise, rankId));
               }
 
               // ── Confirmar disfraz ─────────────────────────────────────────────
@@ -81,28 +85,23 @@ package me.zerith.zerdisguise;
                           disguise, rankId.isBlank() ? "default" : rankId);
               }
 
-              // ── Volver al menú principal (página 0) ───────────────────────────
-              case "back" -> {
-                  MenuBuilder mb = new MenuBuilder(plugin);
-                  player.openInventory(mb.buildMainMenu(player, 0));
-              }
-
-              // ── Renombrar (volver al prompt de chat) ──────────────────────────
+              // ── Renombrar (volver al chat prompt) ─────────────────────────────
               case "rename" -> {
                   player.closeInventory();
                   plugin.getChatListener().awaitInput(player);
+                  player.sendMessage(plugin.getConfigManager().getPrefix().append(
+                          plugin.getConfigManager().component(
+                                  plugin.getConfigManager().getMsgWriteDisguise())));
               }
 
-              // ── Página anterior ───────────────────────────────────────────────
-              case "prev_page" -> {
-                  MenuBuilder mb = new MenuBuilder(plugin);
-                  player.openInventory(mb.buildMainMenu(player, page));
+              // ── Volver al menú principal ──────────────────────────────────────
+              case "back" -> {
+                  player.openInventory(new MenuBuilder(plugin).buildMainMenu(player, 0));
               }
 
-              // ── Página siguiente ──────────────────────────────────────────────
-              case "next_page" -> {
-                  MenuBuilder mb = new MenuBuilder(plugin);
-                  player.openInventory(mb.buildMainMenu(player, page));
+              // ── Paginación ────────────────────────────────────────────────────
+              case "prev_page", "next_page" -> {
+                  player.openInventory(new MenuBuilder(plugin).buildMainMenu(player, page));
               }
 
               default -> {}
