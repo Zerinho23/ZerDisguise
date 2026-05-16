@@ -1,83 +1,68 @@
-# =====================================================
-#              ZerDisguise Configuration
-#          Plugin de disfraces by zerinho23
-# =====================================================
-#
-# COLORES — dos formatos:
-#   &X        — códigos legacy  (&a, &c, &l, etc.)
-#   &#RRGGBB  — hex RGB         (&#FF6600, &#00AAFF)
-#
-# INTEGRACIÓN:
-#   Si tienes Vault o LuckPerms instalados, los prefijos
-#   de los rangos se leen automáticamente desde ahí.
-#   El campo "prefix" aquí es el fallback si no los detecta.
-#   El nombre del rango en "id" debe coincidir con el
-#   nombre del grupo en LuckPerms/Vault (ej: "admin").
-#
-# =====================================================
+# ── ZerDisguise config.yml ────────────────────────────────────────────────────
 
-# Prefijo en los mensajes de chat
-prefix: "&8[&dZerDisguise&8] &r"
+  prefix: "&8[&dZerDisguise&8] &r"
 
-# ── Menú principal ─────────────────────────────────
+  # ── Menú principal ─────────────────────────────────────────────────────────────
+  menu:
+    title: "&8» &dZerDisguise &8«"
+    size: 54   # 54 slots (6 filas) — recomendado
 
-menu:
-  title: "&8» &5&lZerDisguise &8«"
-  size: 27
+  # ── Prompt de escritura ────────────────────────────────────────────────────────
+  prompt:
+    title:    "&dEscribe tu disfraz"
+    subtitle: "&7Escribe el nombre en el chat..."
+    fade-in:  10
+    stay:     60
+    fade-out: 10
 
-# ── Título en pantalla al pedir el disfraz ─────────
+  # ── Rangos predeterminados (usados si LuckPerms/Vault no está instalado) ────────
+  # Los rangos REALES se obtienen automáticamente desde LuckPerms o Vault.
+  # Solo edita esto si no tienes ningún plugin de permisos.
+  ranks:
+    owner:
+      name: "Owner"
+      color: "&4"
+      prefix: "&4[&cOwner&4]&r"
+      permission: "zerdisguise.rank.owner"
+      material: NETHER_STAR
+      glass: RED_STAINED_GLASS_PANE
+    admin:
+      name: "Admin"
+      color: "&c"
+      prefix: "&c[&4Admin&c]&r"
+      permission: "zerdisguise.rank.admin"
+      material: DIAMOND
+      glass: ORANGE_STAINED_GLASS_PANE
+    mod:
+      name: "Mod"
+      color: "&6"
+      prefix: "&6[&eMod&6]&r"
+      permission: "zerdisguise.rank.mod"
+      material: GOLD_INGOT
+      glass: YELLOW_STAINED_GLASS_PANE
+    vip:
+      name: "VIP"
+      color: "&e"
+      prefix: "&e[&6VIP&e]&r"
+      permission: "zerdisguise.rank.vip"
+      material: EMERALD
+      glass: LIME_STAINED_GLASS_PANE
+    default:
+      name: "Default"
+      color: "&7"
+      prefix: "&7[&fDefault&7]&r"
+      permission: "zerdisguise.rank.default"
+      material: STONE
+      glass: GRAY_STAINED_GLASS_PANE
 
-prompt:
-  title: "&#CC88FF✦ &dEscribe tu disfraz"
-  subtitle: "&7Escribe el nombre en el chat · &8cancel &7para salir"
-  # Tiempo en ticks (20 = 1 segundo)
-  fade-in: 10
-  stay: 80
-  fade-out: 10
-
-# ── Rangos disponibles ─────────────────────────────
-#
-# Cada rango:
-#   id       — debe coincidir con el grupo en LuckPerms/Vault
-#   name     — nombre visible en el menú
-#   color    — color del nombre del rango
-#   prefix   — prefijo de fallback (si no hay Vault/LuckPerms)
-#              Usa el mismo formato que en tu plugin de permisos
-#   permission — permiso para seleccionar este rango
-#   material   — ítem del inventario para representarlo
-#   glass    — color del cristal (nombre de Material de vidrio teñido)
-
-ranks:
-  default:
-    name: "Default"
-    color: "&7"
-    prefix: "&8[&7Default&8]&r"
-    permission: zerdisguise.rank.default
-    material: STONE
-    glass: GRAY_STAINED_GLASS_PANE
-  vip:
-    name: "VIP"
-    color: "&a"
-    prefix: "&8[&a&lVIP&8]&r"
-    permission: zerdisguise.rank.vip
-    material: EMERALD
-    glass: LIME_STAINED_GLASS_PANE
-  admin:
-    name: "Admin"
-    color: "&c"
-    prefix: "&8[&c&lAdmin&8]&r"
-    permission: zerdisguise.rank.admin
-    material: NETHER_STAR
-    glass: RED_STAINED_GLASS_PANE
-
-# ── Mensajes ───────────────────────────────────────
-
-messages:
-  no-permission: "&cNo tienes permiso para hacer eso."
-  player-only: "&cEste comando solo puede usarlo un jugador."
-  disguise-applied: "&aDisfratz aplicado&8: &d{disguise} &8| &7Rango&8: &r{rank}"
-  disguise-removed: "&7Disfraz removido correctamente."
-  player-not-found: "&cJugador &e'{player}'&c no encontrado."
-  write-disguise: "&7Escribe el nombre del disfraz en el chat&8..."
-  cancelled: "&7Acción cancelada."
-  reload: "&aConfiguración recargada correctamente."
+  # ── Mensajes ───────────────────────────────────────────────────────────────────
+  messages:
+    no-permission:      "&cNo tienes permiso para hacer eso."
+    player-only:        "&cEste comando es solo para jugadores."
+    disguise-applied:   "&7Disfraz aplicado&8: &d{disguise} &8| &7Rango&8: &f{rank}"
+    disguise-removed:   "&aDisfraz removido correctamente."
+    player-not-found:   "&cJugador &f{player} &cno encontrado."
+    write-disguise:     "&7Escribe el nombre del disfraz en el chat..."
+    cancelled:          "&cCancelado."
+    reload:             "&aConfiguración recargada correctamente."
+  
