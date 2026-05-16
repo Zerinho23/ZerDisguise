@@ -1,8 +1,8 @@
 name: ZerDisguise
-version: 1.3.0
+version: 2.0.0
 main: me.zerith.zerdisguise.ZerDisguise
 api-version: "1.20"
-description: Plugin de disfraces con GUI interactiva
+description: Plugin de disfraces con GUI interactiva — v2
 author: zerinho23
 softdepend:
   - Vault
@@ -11,8 +11,8 @@ softdepend:
 
 commands:
   disguise:
-    description: Abre el menú de disfraces
-    usage: /<command>
+    description: Abre el menu de disfraces
+    usage: /<command> [remove|reload|<jugador>]
     permission: zerdisguise.use
     aliases:
       - disfraz
@@ -21,13 +21,13 @@ commands:
 
 permissions:
   zerdisguise.use:
-    description: Usar el menú de disfraces
+    description: Usar el menu de disfraces
     default: true
   zerdisguise.others:
     description: Disfrazar a otros jugadores
     default: op
   zerdisguise.reload:
-    description: Recargar la configuración
+    description: Recargar la configuracion
     default: op
   zerdisguise.rank.default:
     description: Puede seleccionar el rango default

@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.HashMap;
@@ -13,18 +14,12 @@ import java.util.UUID;
 
 /**
  * Intercepts chat messages for players who are in "awaiting disguise name" mode.
- *
- * Flow:
- *  1. Player clicks the custom head in main menu → awaitInput(player) is called.
- *  2. Next chat message from that player is captured (not sent to global chat).
- *  3. The confirm menu is opened with the typed name.
+ * Also handles player death (disguise removal) and quit cleanup.
  */
 public class ChatListener implements Listener {
 
-    // Players waiting to type their disguise name
-    private final Map<UUID, Boolean> awaitingInput   = new HashMap<>();
-    // Players in confirm menu: [disguiseName, rankId]
-    private final Map<UUID, String[]> pendingConfirm = new HashMap<>();
+    private final Map<UUID, Boolean>   awaitingInput = new HashMap<>();
+    private final Map<UUID, String[]>  pendingConfirm = new HashMap<>();
 
     private final ZerDisguise plugin;
 
@@ -37,7 +32,6 @@ public class ChatListener implements Listener {
         Player player = e.getPlayer();
         if (!awaitingInput.containsKey(player.getUniqueId())) return;
 
-        // Si perdió el permiso entre que abrió el menú y escribió
         if (!player.hasPermission("zerdisguise.use")) {
             awaitingInput.remove(player.getUniqueId());
             return;
@@ -54,12 +48,22 @@ public class ChatListener implements Listener {
             return;
         }
 
-        // Open confirm menu on the main thread
+        if (input.length() > 16 || !input.matches("[a-zA-Z0-9_]+")) {
+            player.sendMessage(plugin.getConfigManager().getPrefix().append(
+                    plugin.getConfigManager().component(
+                            "&cNombre invalido. Solo letras, numeros y _ (max 16 caracteres).")));
+            return;
+        }
+
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             setPendingConfirm(player, input, "default");
-            MenuBuilder mb = new MenuBuilder(plugin);
-            player.openInventory(mb.buildConfirmMenu(player, input, "default"));
+            player.openInventory(new MenuBuilder(plugin).buildConfirmMenu(player, input, "default"));
         });
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent e) {
+        plugin.getDisguiseManager().clearOnDeath(e.getEntity());
     }
 
     @EventHandler

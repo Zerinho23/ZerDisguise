@@ -6,29 +6,19 @@ public class ZerDisguise extends JavaPlugin {
 
     public static final String AUTHOR = "zerinho23";
 
-    private static final String R   = "\u001B[0m";           // Reset
-    private static final String BD  = "\u001B[1m";           // Bold
-    private static final String P1  = "\u001B[38;2;255;100;255m"; // Rosa-violeta
-    private static final String P2  = "\u001B[38;2;210;80;255m";  // Violeta
-    private static final String P3  = "\u001B[38;2;170;70;255m";  // Morado
-    private static final String P4  = "\u001B[38;2;130;60;255m";  // Morado oscuro
-    private static final String P5  = "\u001B[38;2;100;80;255m";  // Azul-violeta
-    private static final String YW  = "\u001B[38;2;255;220;50m";  // Dorado
-    private static final String WH  = "\u001B[38;2;240;240;255m"; // Blanco suave
-    private static final String GR  = "\u001B[38;2;160;160;180m"; // Gris azulado
-    private static final String DG  = "\u001B[38;2;80;80;100m";   // Gris oscuro
-    private static final String GN  = "\u001B[38;2;80;255;140m";  // Verde
-    private static final String CY  = "\u001B[38;2;80;220;255m";  // Cian
-
-    // Legacy aliases (used in onDisable / reload)
-    private static final String ANSI_RESET  = R;
-    private static final String ANSI_PURPLE = P2;
-    private static final String ANSI_YELLOW = YW;
-    private static final String ANSI_WHITE  = WH;
-    private static final String ANSI_GRAY   = GR;
-    private static final String ANSI_DGRAY  = DG;
-    private static final String ANSI_GREEN  = GN;
-    private static final String ANSI_CYAN   = CY;
+    private static final String R  = "\u001B[0m";
+    private static final String BD = "\u001B[1m";
+    private static final String P1 = "\u001B[38;2;255;100;255m";
+    private static final String P2 = "\u001B[38;2;210;80;255m";
+    private static final String P3 = "\u001B[38;2;170;70;255m";
+    private static final String P4 = "\u001B[38;2;130;60;255m";
+    private static final String P5 = "\u001B[38;2;100;80;255m";
+    private static final String YW = "\u001B[38;2;255;220;50m";
+    private static final String WH = "\u001B[38;2;240;240;255m";
+    private static final String GR = "\u001B[38;2;160;160;180m";
+    private static final String DG = "\u001B[38;2;80;80;100m";
+    private static final String GN = "\u001B[38;2;80;255;140m";
+    private static final String CY = "\u001B[38;2;80;220;255m";
 
     private static ZerDisguise instance;
     private ConfigManager   configManager;
@@ -66,18 +56,16 @@ public class ZerDisguise extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        getLogger().info(ANSI_PURPLE + "ZerDisguise" + ANSI_GRAY + " deshabilitado." + ANSI_RESET);
+        getLogger().info(P2 + "ZerDisguise" + GR + " deshabilitado." + R);
     }
 
     public void reload() {
         configManager.loadConfig();
-        getLogger().info(ANSI_GREEN + "Configuración recargada correctamente." + ANSI_RESET);
+        getLogger().info(GN + "Configuracion recargada correctamente." + R);
     }
 
     private void printBanner() {
         String v = getPluginMeta().getVersion();
-
-        // ── ASCII art con gradiente ──────────────────────────────────────────
         log("");
         log(P1 + "  ╔══════════════════════════════════════════════════════════╗");
         log(P1 + "  ║                                                          ║");
@@ -88,19 +76,16 @@ public class ZerDisguise extends JavaPlugin {
         log(P5 + "  ║                             |___/                        ║");
         log(P1 + "  ║                                                          ║");
         log(P1 + "  ╠══════════════════════════════════════════════════════════╣");
-        // ── Info box ────────────────────────────────────────────────────────
-        log(DG  + "  ║  " + GR  + " Versión  " + WH + BD + "ZerDisguise " + YW + "v" + v + R + DG + "                              ║");
-        log(DG  + "  ║  " + GR  + " Autor    " + CY + BD + "✦ " + AUTHOR + R + DG + "                                    ║");
-        log(DG  + "  ║  " + GR  + " Estado   " + GN + "✔ Plugin cargado correctamente" + DG + "          ║");
-        log(DG  + "  ║  " + GR  + " MC       " + WH + "Paper / Spigot  1.20 → 1.21+" + DG + "          ║");
-        log(DG  + "  ║  " + GR  + " Comando  " + P2 + "/disguise  /disfraz  /zd" + DG + "               ║");
+        log(DG  + "  ║  " + GR + " Version  " + WH + BD + "ZerDisguise " + YW + "v" + v + R + DG + "                              ║");
+        log(DG  + "  ║  " + GR + " Autor    " + CY + BD + "✦ " + AUTHOR + R + DG + "                                    ║");
+        log(DG  + "  ║  " + GR + " Estado   " + GN + "✔ Plugin cargado correctamente" + DG + "          ║");
+        log(DG  + "  ║  " + GR + " MC       " + WH + "Paper / Spigot  1.20 - 1.21+" + DG + "           ║");
+        log(DG  + "  ║  " + GR + " Comando  " + P2 + "/disguise  /disfraz  /zd" + DG + "               ║");
         log(P1  + "  ╚══════════════════════════════════════════════════════════╝");
         log("");
     }
 
-    private void log(String msg) {
-        getLogger().info(msg + ANSI_RESET);
-    }
+    private void log(String msg) { getLogger().info(msg + R); }
 
     public static ZerDisguise getInstance()       { return instance; }
     public ConfigManager    getConfigManager()    { return configManager; }

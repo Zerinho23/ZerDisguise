@@ -4,7 +4,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Material;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -28,32 +29,28 @@ public class ConfigManager {
         plugin.reloadConfig();
     }
 
-    // ── General ──────────────────────────────────────────────────────────────
-
     public Component getPrefix() {
-        return component(plugin.getConfig().getString("prefix", "&8[&dZerDisguise&8] &r"));
+        return component(plugin.getConfig().getString("prefix", "&8[&#CC88FF&lZerDisguise&8] &r"));
     }
 
-    // ── Menu ─────────────────────────────────────────────────────────────────
-
     public String getMenuTitle() {
-        return plugin.getConfig().getString("menu.title", "&8» &dZerDisguise &8«");
+        return plugin.getConfig().getString("menu.title", "&8≫ &#CC88FF&lZerDisguise &8≪");
+    }
+
+    public String getConfirmTitle() {
+        return plugin.getConfig().getString("menu.confirm-title", "&8≫ &#CC88FF&lConfirmar disfraz &8≪");
     }
 
     public int getMenuSize() {
-        int s = plugin.getConfig().getInt("menu.size", 27);
-        return (s % 9 == 0 && s >= 9 && s <= 54) ? s : 27;
+        int s = plugin.getConfig().getInt("menu.size", 54);
+        return (s % 9 == 0 && s >= 9 && s <= 54) ? s : 54;
     }
 
-    // ── Prompt ───────────────────────────────────────────────────────────────
-
-    public String getPromptTitle()    { return plugin.getConfig().getString("prompt.title",    "&dEscribe tu disfraz"); }
+    public String getPromptTitle()    { return plugin.getConfig().getString("prompt.title",    "&#CC88FF&lEscribe tu disfraz"); }
     public String getPromptSubtitle() { return plugin.getConfig().getString("prompt.subtitle", "&7Escribe el nombre en el chat..."); }
     public int    getPromptFadeIn()   { return plugin.getConfig().getInt("prompt.fade-in",  10); }
-    public int    getPromptStay()     { return plugin.getConfig().getInt("prompt.stay",     60); }
+    public int    getPromptStay()     { return plugin.getConfig().getInt("prompt.stay",     80); }
     public int    getPromptFadeOut()  { return plugin.getConfig().getInt("prompt.fade-out", 10); }
-
-    // ── Ranks ────────────────────────────────────────────────────────────────
 
     public List<RankEntry> getRanks() {
         List<RankEntry> list = new ArrayList<>();
@@ -82,46 +79,31 @@ public class ConfigManager {
                             String prefix, String permission,
                             Material material, Material glass) {}
 
-    // ── Messages ─────────────────────────────────────────────────────────────
+    public String getMsgNoPermission()  { return plugin.getConfig().getString("messages.no-permission",   "&cNo tienes permiso para hacer eso."); }
+    public String getMsgPlayerOnly()    { return plugin.getConfig().getString("messages.player-only",     "&cEste comando es solo para jugadores."); }
+    public String getMsgApplied()       { return plugin.getConfig().getString("messages.disguise-applied","&7Disfraz aplicado&8: &#CC88FF{disguise} &8| &7Rango&8: &f{rank}"); }
+    public String getMsgRemoved()       { return plugin.getConfig().getString("messages.disguise-removed","&aDisfraz removido correctamente."); }
+    public String getMsgNotFound()      { return plugin.getConfig().getString("messages.player-not-found","&cJugador &f{player} &cno encontrado."); }
+    public String getMsgWriteDisguise() { return plugin.getConfig().getString("messages.write-disguise",  "&#CC88FF&lEscribe el nombre en el chat &8(&7cancel &8= cancelar&8)"); }
+    public String getMsgCancelled()     { return plugin.getConfig().getString("messages.cancelled",       "&cCancelado."); }
+    public String getMsgReload()        { return plugin.getConfig().getString("messages.reload",          "&aConfiguracion recargada correctamente."); }
+    public String getMsgInvalidName()   { return plugin.getConfig().getString("messages.invalid-name",    "&cNombre invalido. Solo letras, numeros y _ (max 16)."); }
 
-    public String getMsgNoPermission()  { return plugin.getConfig().getString("messages.no-permission", "&cNo tienes permiso."); }
-    public String getMsgPlayerOnly()    { return plugin.getConfig().getString("messages.player-only",   "&cSolo jugadores."); }
-    public String getMsgApplied()       { return plugin.getConfig().getString("messages.disguise-applied", "&aDisfratz aplicado: &d{disguise} &a| Rango: &f{rank}"); }
-    public String getMsgRemoved()       { return plugin.getConfig().getString("messages.disguise-removed", "&aDisfratz removido."); }
-    public String getMsgNotFound()      { return plugin.getConfig().getString("messages.player-not-found", "&cJugador no encontrado."); }
-    public String getMsgWriteDisguise() { return plugin.getConfig().getString("messages.write-disguise", "&7Escribe el nombre del disfraz en el chat..."); }
-    public String getMsgCancelled()     { return plugin.getConfig().getString("messages.cancelled", "&cCancelado."); }
-    public String getMsgReload()        { return plugin.getConfig().getString("messages.reload", "&aConfiguración recargada."); }
-
-    // ── Color parsing ─────────────────────────────────────────────────────────
-
-    /** Parses a string that uses &-codes and/or &#RRGGBB hex. */
     public Component component(String text) {
-        if (text == null) return net.kyori.adventure.text.Component.empty();
+        if (text == null) return Component.empty();
         return SECTION_HEX.deserialize(toSectionFormat(text));
     }
 
-    /**
-     * Parses a string that may use §-codes (from Vault / LuckPerms)
-     * OR &-codes (from config). Safe to call with either format.
-     */
     public Component componentAny(String text) {
-        if (text == null || text.isEmpty())
-            return net.kyori.adventure.text.Component.empty();
-        // §-format strings from Vault/LP — deserialize directly
-        if (text.contains("\u00A7")) {
-            return SECTION_HEX.deserialize(text);
-        }
-        // &-format from config
+        if (text == null || text.isEmpty()) return Component.empty();
+        if (text.contains("\u00A7")) return SECTION_HEX.deserialize(text);
         return component(text);
     }
 
-    /** Returns a plain colorized legacy string (§ codes). */
     public String colorize(String text) {
         return LegacyComponentSerializer.legacySection().serialize(component(text));
     }
 
-    /** Strips all color codes from a string (for length calculations). */
     public String strip(String text) {
         if (text == null) return "";
         return text.replaceAll("(?i)[&§][0-9A-FK-ORX]", "")

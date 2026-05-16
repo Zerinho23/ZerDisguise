@@ -21,13 +21,12 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
         ConfigManager cfg    = plugin.getConfigManager();
         Component     prefix = cfg.getPrefix();
 
-        // ── Solo jugadores ────────────────────────────────────────────────────
         if (!(sender instanceof Player player)) {
             sender.sendMessage(prefix.append(cfg.component(cfg.getMsgPlayerOnly())));
             return true;
         }
 
-        // ── /disguise reload — permiso propio ─────────────────────────────────
+        // /disguise reload
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             if (!player.hasPermission("zerdisguise.reload")) {
                 player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
@@ -38,19 +37,19 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // ── Permiso base: zerdisguise.use (requerido para todo lo demás) ──────
+        // Permiso base
         if (!player.hasPermission("zerdisguise.use")) {
             player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
             return true;
         }
 
-        // ── /disguise remove ──────────────────────────────────────────────────
+        // /disguise remove
         if (args.length == 1 && args[0].equalsIgnoreCase("remove")) {
             plugin.getDisguiseManager().removeDisguise(player);
             return true;
         }
 
-        // ── /disguise <jugador> — requiere permiso adicional ─────────────────
+        // /disguise <jugador>
         if (args.length == 1) {
             if (!player.hasPermission("zerdisguise.others")) {
                 player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
@@ -62,16 +61,14 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
                         cfg.getMsgNotFound().replace("{player}", args[0]))));
                 return true;
             }
-            MenuBuilder mb = new MenuBuilder(plugin);
-            target.openInventory(mb.buildMainMenu(target));
+            target.openInventory(new MenuBuilder(plugin).buildMainMenu(target));
             player.sendMessage(prefix.append(cfg.component(
-                    "&7Abriste el menú de disfraz para &d" + target.getName())));
+                    "&7Abriste el menu de disfraz para &d" + target.getName())));
             return true;
         }
 
-        // ── /disguise — abre el menú ──────────────────────────────────────────
-        MenuBuilder mb = new MenuBuilder(plugin);
-        player.openInventory(mb.buildMainMenu(player));
+        // /disguise — abre el menu
+        player.openInventory(new MenuBuilder(plugin).buildMainMenu(player));
         return true;
     }
 
@@ -81,11 +78,6 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
         List<String> result = new ArrayList<>();
         if (!(sender instanceof Player player)) return result;
         if (args.length != 1) return result;
-
-        // Solo mostrar opciones si el jugador tiene el permiso base
-        if (!player.hasPermission("zerdisguise.use") && !player.hasPermission("zerdisguise.reload")) {
-            return result;
-        }
 
         List<String> options = new ArrayList<>();
         if (player.hasPermission("zerdisguise.use"))   options.add("remove");

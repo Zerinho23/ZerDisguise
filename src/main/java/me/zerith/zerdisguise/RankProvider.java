@@ -49,16 +49,10 @@ public class RankProvider {
         }
 
         if (vaultChat == null && luckPerms == null) {
-            plugin.getLogger().info("Sin Vault ni LuckPerms — usando prefijos del config.yml.");
+            plugin.getLogger().info("Sin Vault ni LuckPerms — usando rangos del config.yml.");
         }
     }
 
-    // ── Obtener todos los grupos ──────────────────────────────────────────────
-
-    /**
-     * Devuelve todos los grupos de LuckPerms ordenados por peso descendente.
-     * Si LuckPerms no está disponible, usa los rangos del config.yml.
-     */
     public List<GroupEntry> getAllGroups() {
         List<GroupEntry> result = new ArrayList<>();
 
@@ -68,7 +62,7 @@ public class RankProvider {
                     String prefix = group.getCachedData().getMetaData().getPrefix();
                     int weight = group.getWeight().orElse(0);
                     if (prefix == null || prefix.isBlank()) {
-                        prefix = "&7[&f" + capitalize(group.getName()) + "&7]";
+                        prefix = "&8[&f" + capitalize(group.getName()) + "&8]";
                     }
                     result.add(new GroupEntry(group.getName(), prefix, weight));
                 }
@@ -87,7 +81,7 @@ public class RankProvider {
                     for (String g : groups) {
                         String prefix = vaultChat.getGroupPrefix(world, g);
                         if (prefix == null || prefix.isBlank()) {
-                            prefix = "&7[&f" + capitalize(g) + "&7]";
+                            prefix = "&8[&f" + capitalize(g) + "&8]";
                         }
                         result.add(new GroupEntry(g, prefix, 0));
                     }
@@ -105,8 +99,6 @@ public class RankProvider {
         return result;
     }
 
-    // ── Grupo primario del jugador ────────────────────────────────────────────
-
     public String getPlayerPrimaryGroup(Player player) {
         if (luckPerms != null) {
             try {
@@ -123,16 +115,7 @@ public class RankProvider {
         return "default";
     }
 
-    // ── Prefijo de un grupo ───────────────────────────────────────────────────
-
     public String getGroupPrefix(String groupName) {
-        if (vaultChat != null) {
-            try {
-                String world  = plugin.getServer().getWorlds().get(0).getName();
-                String prefix = vaultChat.getGroupPrefix(world, groupName);
-                if (prefix != null && !prefix.isEmpty()) return prefix;
-            } catch (Exception ignored) {}
-        }
         if (luckPerms != null) {
             try {
                 Group group = luckPerms.getGroupManager().getGroup(groupName);
@@ -142,17 +125,22 @@ public class RankProvider {
                 }
             } catch (Exception ignored) {}
         }
+        if (vaultChat != null) {
+            try {
+                String world  = plugin.getServer().getWorlds().get(0).getName();
+                String prefix = vaultChat.getGroupPrefix(world, groupName);
+                if (prefix != null && !prefix.isEmpty()) return prefix;
+            } catch (Exception ignored) {}
+        }
         return null;
     }
 
-    // ── Prefijo del jugador (con soporte de PlaceholderAPI) ───────────────────
-
     public String getPlayerPrefix(Player player) {
-        // 1) PlaceholderAPI — %luckperms_prefix% o %vault_prefix%
+        // 1) PlaceholderAPI
         if (plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 Class<?> papi = Class.forName("me.clip.placeholderapi.PlaceholderAPI");
-                Method set = papi.getMethod("setPlaceholders", Player.class, String.class);
+                Method   set  = papi.getMethod("setPlaceholders", Player.class, String.class);
 
                 String lpPrefix = (String) set.invoke(null, player, "%luckperms_prefix%");
                 if (valid(lpPrefix, "%luckperms_prefix%")) return lpPrefix;
@@ -162,15 +150,7 @@ public class RankProvider {
             } catch (Exception ignored) {}
         }
 
-        // 2) Vault Chat directo
-        if (vaultChat != null) {
-            try {
-                String prefix = vaultChat.getPlayerPrefix(player);
-                if (prefix != null && !prefix.isEmpty()) return prefix;
-            } catch (Exception ignored) {}
-        }
-
-        // 3) LuckPerms directo
+        // 2) LuckPerms directo
         if (luckPerms != null) {
             try {
                 var user = luckPerms.getUserManager().getUser(player.getUniqueId());
@@ -181,10 +161,16 @@ public class RankProvider {
             } catch (Exception ignored) {}
         }
 
+        // 3) Vault Chat
+        if (vaultChat != null) {
+            try {
+                String prefix = vaultChat.getPlayerPrefix(player);
+                if (prefix != null && !prefix.isEmpty()) return prefix;
+            } catch (Exception ignored) {}
+        }
+
         return null;
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static boolean valid(String value, String placeholder) {
         return value != null && !value.isBlank() && !value.equals(placeholder);
