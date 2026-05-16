@@ -21,13 +21,13 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
         ConfigManager cfg    = plugin.getConfigManager();
         Component     prefix = cfg.getPrefix();
 
-        // Player-only command
+        // ── Solo jugadores ────────────────────────────────────────────────────
         if (!(sender instanceof Player player)) {
             sender.sendMessage(prefix.append(cfg.component(cfg.getMsgPlayerOnly())));
             return true;
         }
 
-        // /disguise reload
+        // ── /disguise reload — permiso propio ─────────────────────────────────
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             if (!player.hasPermission("zerdisguise.reload")) {
                 player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
@@ -38,21 +38,30 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // /disguise remove
+        // ── Permiso base: zerdisguise.use (requerido para todo lo demás) ──────
+        if (!player.hasPermission("zerdisguise.use")) {
+            player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
+            return true;
+        }
+
+        // ── /disguise remove ──────────────────────────────────────────────────
         if (args.length == 1 && args[0].equalsIgnoreCase("remove")) {
             plugin.getDisguiseManager().removeDisguise(player);
             return true;
         }
 
-        // /disguise <player> — disguise another player (opens their GUI for admin)
-        if (args.length == 1 && player.hasPermission("zerdisguise.others")) {
+        // ── /disguise <jugador> — requiere permiso adicional ─────────────────
+        if (args.length == 1) {
+            if (!player.hasPermission("zerdisguise.others")) {
+                player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
+                return true;
+            }
             Player target = Bukkit.getPlayerExact(args[0]);
             if (target == null) {
                 player.sendMessage(prefix.append(cfg.component(
                         cfg.getMsgNotFound().replace("{player}", args[0]))));
                 return true;
             }
-            // Open the main menu for the target player
             MenuBuilder mb = new MenuBuilder(plugin);
             target.openInventory(mb.buildMainMenu(target));
             player.sendMessage(prefix.append(cfg.component(
@@ -60,13 +69,7 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        // No permission check
-        if (!player.hasPermission("zerdisguise.use")) {
-            player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
-            return true;
-        }
-
-        // /disguise — open main menu
+        // ── /disguise — abre el menú ──────────────────────────────────────────
         MenuBuilder mb = new MenuBuilder(plugin);
         player.openInventory(mb.buildMainMenu(player));
         return true;
@@ -76,13 +79,24 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command,
                                       String alias, String[] args) {
         List<String> result = new ArrayList<>();
-        if (args.length == 1) {
-            List<String> options = new ArrayList<>(List.of("reload", "remove"));
-            if (sender.hasPermission("zerdisguise.others")) {
-                for (Player p : Bukkit.getOnlinePlayers()) options.add(p.getName());
-            }
-            String typed = args[0].toLowerCase();
-            for (String o : options) if (o.toLowerCase().startsWith(typed)) result.add(o);
+        if (!(sender instanceof Player player)) return result;
+        if (args.length != 1) return result;
+
+        // Solo mostrar opciones si el jugador tiene el permiso base
+        if (!player.hasPermission("zerdisguise.use") && !player.hasPermission("zerdisguise.reload")) {
+            return result;
+        }
+
+        List<String> options = new ArrayList<>();
+        if (player.hasPermission("zerdisguise.use"))   options.add("remove");
+        if (player.hasPermission("zerdisguise.reload")) options.add("reload");
+        if (player.hasPermission("zerdisguise.others")) {
+            for (Player p : Bukkit.getOnlinePlayers()) options.add(p.getName());
+        }
+
+        String typed = args[0].toLowerCase();
+        for (String o : options) {
+            if (o.toLowerCase().startsWith(typed)) result.add(o);
         }
         return result;
     }
