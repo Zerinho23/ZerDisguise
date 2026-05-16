@@ -1,0 +1,64 @@
+# =====================================================
+#              ZerDisguise Configuration
+#          Plugin de disfraces by zerinho23
+# =====================================================
+#
+# COLORES — dos formatos:
+#   &X        — códigos legacy  (&a, &c, &l, etc.)
+#   &#RRGGBB  — hex RGB         (&#FF6600, &#00AAFF)
+#
+# =====================================================
+
+# Prefijo en los mensajes
+prefix: "&8[&dZerDisguise&8] &r"
+
+# ── Menú principal ─────────────────────────────────
+
+menu:
+  title: "&8» &dZerDisguise &8«"
+  size: 27
+
+# ── Título en pantalla al pedir el disfraz ─────────
+
+prompt:
+  title: "&dEscribe tu disfraz"
+  subtitle: "&7Escribe el nombre en el chat..."
+  # Tiempo en ticks (20 = 1 segundo)
+  fade-in: 10
+  stay: 60
+  fade-out: 10
+
+# ── Rangos disponibles ─────────────────────────────
+# Cada rango tiene: nombre, color, prefijo de chat y permiso requerido.
+
+ranks:
+  default:
+    name: "Default"
+    color: "&7"
+    prefix: "&7[Default]&r"
+    permission: zerdisguise.rank.default
+    material: STONE
+  vip:
+    name: "VIP"
+    color: "&a"
+    prefix: "&a[VIP]&r"
+    permission: zerdisguise.rank.vip
+    material: EMERALD
+  admin:
+    name: "Admin"
+    color: "&c"
+    prefix: "&c[Admin]&r"
+    permission: zerdisguise.rank.admin
+    material: NETHER_STAR
+
+# ── Mensajes ───────────────────────────────────────
+
+messages:
+  no-permission: "&cNo tienes permiso para hacer eso."
+  player-only: "&cEste comando solo puede usarlo un jugador."
+  disguise-applied: "&aDisfratz aplicado: &d{disguise} &a| Rango: &f{rank}"
+  disguise-removed: "&aDisfratz removido correctamente."
+  player-not-found: "&cJugador '&e{player}&c' no encontrado."
+  write-disguise: "&7Escribe el nombre del disfraz en el chat..."
+  cancelled: "&cAcción cancelada."
+  reload: "&aConfiguración recargada."
