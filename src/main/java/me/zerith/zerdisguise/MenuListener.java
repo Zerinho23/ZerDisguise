@@ -86,10 +86,10 @@ public class MenuListener implements Listener {
                     cl.awaitInput(player);
                 }
                 case 22 -> {
-                    // Confirm
-                    dm.applyDisguise(player, disguiseName, rankId);
+                    // Confirm — close inventory first, then start async skin fetch
                     cl.clearPendingConfirm(player);
                     player.closeInventory();
+                    dm.applyDisguise(player, disguiseName, rankId);
                 }
                 case 24 -> {
                     // Back to main menu
