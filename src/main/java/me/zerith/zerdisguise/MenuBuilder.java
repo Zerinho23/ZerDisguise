@@ -13,47 +13,39 @@ package me.zerith.zerdisguise;
   import org.bukkit.inventory.meta.ItemMeta;
   import org.bukkit.inventory.meta.SkullMeta;
   import org.bukkit.persistence.PersistentDataType;
-  import org.bukkit.profile.PlayerProfile;
-  import org.bukkit.profile.PlayerTextures;
 
-  import java.net.MalformedURLException;
-  import java.net.URI;
-  import java.util.*;
+  import java.util.ArrayList;
+  import java.util.List;
 
   /**
-   * Construye los menús de ZerDisguise (54 slots).
+   * Construye los menus de ZerDisguise (54 slots).
    *
-   * Menú principal (54 slots):
-   *  Fila 0  → borde morado
-   *  Fila 1  → [HEAD][F][F][F][WRITE][F][F][F][REMOVE]
-   *  Fila 2  → borde divisor + etiqueta "Jugadores conectados"
-   *  Filas 3-4 → cabezas de jugadores online (18 por página)
-   *  Fila 5  → [PREV][B][B][B][PAGE INFO][B][B][B][NEXT]
+   * Menu principal (54 slots):
+   *   Fila 0  -> borde morado
+   *   Fila 1  -> [Cabeza][F][F][F][Escribir][F][F][F][Quitar]
+   *   Fila 2  -> divisor magenta + etiqueta central
+   *   Filas 3-4 -> cabezas de jugadores online (18 por pagina)
+   *   Fila 5  -> [Anterior][F][F][F][Pagina][F][F][F][Siguiente]
    *
-   * Menú de confirmación (54 slots):
-   *  Fila 0  → borde + HEAD en slot 4
-   *  Filas 1-2 → selector de rangos (hasta 14, slots 10-16 y 19-25)
-   *  Filas 3-4 → relleno
-   *  Fila 5  → borde + [RENAME][CONFIRM][BACK]
+   * Menu de confirmacion (54 slots):
+   *   Fila 0  -> borde + cabeza preview en slot 4
+   *   Filas 1-2 -> selector de rangos (slots 10-16, 19-25)
+   *   Filas 3-4 -> relleno negro
+   *   Fila 5  -> borde + [Renombrar][F][F][Confirmar][F][F][Volver]
    */
   public class MenuBuilder {
 
       public static final int PLAYERS_PER_PAGE = 18;
 
-      // ── PDC Keys ──────────────────────────────────────────────────────────────
+      // PDC Keys -- inicializadas desde ZerDisguise.onEnable() via initKeys()
       public static NamespacedKey KEY_ACTION;
       public static NamespacedKey KEY_PLAYER;
       public static NamespacedKey KEY_RANK;
       public static NamespacedKey KEY_DISGUISE;
       public static NamespacedKey KEY_PAGE;
 
-      private static final String CUSTOM_HEAD_B64 =
-          "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0" +
-          "L3RleHR1cmUvYmFkYzA0OGE3Y2U3OGY3ZGE3MzI0YWYzYTM1ZmRmMThjZjQ4NzAzYWFmZDIyZWFh" +
-          "YmM3OTRhZmM2YSJ9fX0=";
-
       private static final Material BORDER  = Material.PURPLE_STAINED_GLASS_PANE;
-      private static final Material FILLER  = Material.GRAY_STAINED_GLASS_PANE;
+      private static final Material FILLER  = Material.BLACK_STAINED_GLASS_PANE;
       private static final Material DIVIDER = Material.MAGENTA_STAINED_GLASS_PANE;
 
       private static final Material[] RANK_GLASS = {
@@ -75,20 +67,22 @@ package me.zerith.zerdisguise;
 
       private final ZerDisguise plugin;
 
-      public MenuBuilder(ZerDisguise plugin) {
-          this.plugin = plugin;
-          if (KEY_ACTION == null) {
-              KEY_ACTION   = new NamespacedKey(plugin, "zd_action");
-              KEY_PLAYER   = new NamespacedKey(plugin, "zd_player");
-              KEY_RANK     = new NamespacedKey(plugin, "zd_rank");
-              KEY_DISGUISE = new NamespacedKey(plugin, "zd_disguise");
-              KEY_PAGE     = new NamespacedKey(plugin, "zd_page");
-          }
+      /** Llamar desde ZerDisguise.onEnable() antes de abrir cualquier menu. */
+      public static void initKeys(ZerDisguise plugin) {
+          KEY_ACTION   = new NamespacedKey(plugin, "zd_action");
+          KEY_PLAYER   = new NamespacedKey(plugin, "zd_player");
+          KEY_RANK     = new NamespacedKey(plugin, "zd_rank");
+          KEY_DISGUISE = new NamespacedKey(plugin, "zd_disguise");
+          KEY_PAGE     = new NamespacedKey(plugin, "zd_page");
       }
 
-      // ═══════════════════════════════════════════════════════════════════════════
-      //  MENÚ PRINCIPAL (página 0 por defecto)
-      // ═══════════════════════════════════════════════════════════════════════════
+      public MenuBuilder(ZerDisguise plugin) {
+          this.plugin = plugin;
+      }
+
+      // ============================================================
+      //  MENU PRINCIPAL
+      // ============================================================
 
       public Inventory buildMainMenu(Player player) {
           return buildMainMenu(player, 0);
@@ -96,133 +90,116 @@ package me.zerith.zerdisguise;
 
       public Inventory buildMainMenu(Player player, int page) {
           ConfigManager cfg = plugin.getConfigManager();
-          Inventory inv = Bukkit.createInventory(null, 54, cfg.component(cfg.getMenuTitle()));
+          Inventory inv = Bukkit.createInventory(null, 54,
+                  cfg.component("&8>> &#CC88FF&lZerDisguise &8<<"));
 
           ItemStack border  = glass(BORDER);
           ItemStack filler  = glass(FILLER);
           ItemStack divider = glass(DIVIDER);
 
-          // ── Fila 0: borde superior ────────────────────────────────────────────
+          // Fila 0: borde morado
           for (int i = 0; i < 9; i++) inv.setItem(i, border);
 
-          // ── Fila 1: info jugador + botones ────────────────────────────────────
+          // Fila 1: info del jugador + escribir + quitar
           inv.setItem(9,  buildPlayerInfoHead(player));
           for (int i = 10; i <= 12; i++) inv.setItem(i, filler);
           inv.setItem(13, buildWriteButton());
           for (int i = 14; i <= 16; i++) inv.setItem(i, filler);
           inv.setItem(17, plugin.getDisguiseManager().isDisguised(player)
-                  ? buildRemoveButton(player) : filler);
+                  ? buildRemoveButton(player) : border);
 
-          // ── Fila 2: divisor con etiqueta ──────────────────────────────────────
+          // Fila 2: divisor con etiqueta central
           for (int i = 18; i < 27; i++) inv.setItem(i, divider);
-          inv.setItem(22, buildSectionLabel(
-                  "&#CC88FFJugadores conectados",
-                  List.of("&8", "&7Haz clic en una cabeza para", "&7ponerte su skin y nombre.", "&8"),
-                  Material.COMPASS));
+          inv.setItem(22, buildLabel(Material.COMPASS,
+                  "&#FFAAFF&l* Jugadores en linea",
+                  List.of("", "&7Haz clic en una cabeza para",
+                          "&7ponerte su skin y nombre al instante.", "")));
 
-          // ── Filas 3-4: cabezas de jugadores (página actual) ───────────────────
+          // Filas 3-4: cabezas de jugadores online
           List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
-          int totalPlayers = online.size();
-          int totalPages   = Math.max(1, (int) Math.ceil(totalPlayers / (double) PLAYERS_PER_PAGE));
-          int safePage     = Math.min(Math.max(page, 0), totalPages - 1);
-          int startIndex   = safePage * PLAYERS_PER_PAGE;
+          int total      = online.size();
+          int totalPages = Math.max(1, (int) Math.ceil(total / (double) PLAYERS_PER_PAGE));
+          int safePage   = Math.max(0, Math.min(page, totalPages - 1));
+          int start      = safePage * PLAYERS_PER_PAGE;
 
           int slot = 27;
-          for (int i = startIndex; i < Math.min(startIndex + PLAYERS_PER_PAGE, totalPlayers); i++) {
-              inv.setItem(slot++, buildOnlinePlayerHead(online.get(i), player));
+          for (int i = start; i < Math.min(start + PLAYERS_PER_PAGE, total); i++) {
+              inv.setItem(slot++, buildOnlinePlayerHead(online.get(i)));
           }
           while (slot <= 44) inv.setItem(slot++, filler);
 
-          // ── Fila 5: navegación de páginas ─────────────────────────────────────
+          // Fila 5: navegacion de paginas
           for (int i = 45; i < 54; i++) inv.setItem(i, border);
-
-          // Botón anterior (slot 45)
           if (safePage > 0) {
-              inv.setItem(45, buildPageNavButton(
-                      Material.ARROW,
-                      "prev_page",
-                      safePage - 1,
-                      "&e&l← Página anterior",
-                      List.of("&8", "&7Página &f" + safePage + " &7de &f" + totalPages, "&8")));
+              inv.setItem(45, navButton("prev_page", safePage - 1,
+                      "&e&l<-- Pagina anterior",
+                      List.of("", "&7Pagina &f" + safePage + " &7de &f" + totalPages, "")));
           }
-
-          // Indicador de página (slot 49)
-          inv.setItem(49, buildSectionLabel(
-                  "&7Página &f" + (safePage + 1) + " &7/ &f" + totalPages,
-                  List.of("&8", "&7Total de jugadores&8: &f" + totalPlayers, "&8"),
-                  Material.PAPER));
-
-          // Botón siguiente (slot 53)
+          inv.setItem(49, buildLabel(Material.PAPER,
+                  "&fPagina &e" + (safePage + 1) + " &8/ &e" + totalPages,
+                  List.of("", "&8Jugadores online&7: &f" + total, "")));
           if (safePage < totalPages - 1) {
-              inv.setItem(53, buildPageNavButton(
-                      Material.ARROW,
-                      "next_page",
-                      safePage + 1,
-                      "&e&lPágina siguiente →",
-                      List.of("&8", "&7Página &f" + (safePage + 2) + " &7de &f" + totalPages, "&8")));
+              inv.setItem(53, navButton("next_page", safePage + 1,
+                      "&e&lPagina siguiente -->",
+                      List.of("", "&7Pagina &f" + (safePage + 2) + " &7de &f" + totalPages, "")));
           }
 
           return inv;
       }
 
-      // ═══════════════════════════════════════════════════════════════════════════
-      //  MENÚ DE CONFIRMACIÓN (54 slots)
-      // ═══════════════════════════════════════════════════════════════════════════
+      // ============================================================
+      //  MENU DE CONFIRMACION
+      // ============================================================
 
       public Inventory buildConfirmMenu(Player player, String disguiseName, String selectedRankId) {
           ConfigManager cfg = plugin.getConfigManager();
           RankProvider  rp  = plugin.getRankProvider();
 
           Inventory inv = Bukkit.createInventory(null, 54,
-                  cfg.component("&8» &#CC88FF&lConfirmar disfraz &8«"));
+                  cfg.component("&8>> &#CC88FF&lConfirmar disfraz &8<<"));
 
           ItemStack border = glass(BORDER);
           ItemStack filler = glass(FILLER);
 
-          // Fila 0: borde + cabeza preview en slot 4
+          // Fila 0: borde + cabeza de preview en slot 4
           for (int i = 0; i < 9; i++) inv.setItem(i, border);
-          inv.setItem(4, buildTargetHead(disguiseName, selectedRankId));
+          inv.setItem(4, buildPreviewHead(disguiseName, selectedRankId));
 
-          // Filas 1-2: selector de rangos
-          inv.setItem(9,  border); inv.setItem(17, border);
-          inv.setItem(18, border); inv.setItem(26, border);
+          // Filas 1-2: selector de rangos (slots 10-16 y 19-25)
+          for (int s : new int[]{9, 17, 18, 26}) inv.setItem(s, border);
 
           List<RankProvider.GroupEntry> groups = rp.getAllGroups();
           int[] rankSlots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25};
-
-          for (int i = 0; i < rankSlots.length; i++) {
-              if (i < groups.size()) {
-                  RankProvider.GroupEntry g = groups.get(i);
-                  boolean sel = g.id().equalsIgnoreCase(selectedRankId);
-                  inv.setItem(rankSlots[i], buildRankItem(g, i, sel, disguiseName));
-              } else {
-                  inv.setItem(rankSlots[i], filler);
-              }
+          for (int i = 0; i < Math.min(groups.size(), rankSlots.length); i++) {
+              RankProvider.GroupEntry g = groups.get(i);
+              boolean selected = g.id().equalsIgnoreCase(selectedRankId);
+              inv.setItem(rankSlots[i], buildRankButton(g, disguiseName, selected, i));
+          }
+          for (int i = 9; i < 27; i++) {
+              if (inv.getItem(i) == null) inv.setItem(i, filler);
           }
 
-          // Filas 3-4: relleno
+          // Filas 3-4: relleno negro
           for (int i = 27; i < 45; i++) inv.setItem(i, filler);
 
-          // Fila 5: borde + acciones
+          // Fila 5: borde + botones de accion
           for (int i = 45; i < 54; i++) inv.setItem(i, border);
-          inv.setItem(46, filler);
-          inv.setItem(47, buildActionItem(Material.NAME_TAG, "rename", disguiseName, selectedRankId,
-                  "&#FFCC00&l✎ Cambiar nombre",
-                  List.of("&8", "&7Escribe otro nombre en el chat.", "&8")));
-          inv.setItem(48, filler);
+          inv.setItem(46, buildActionButton(Material.NAME_TAG, "rename",
+                  disguiseName, selectedRankId,
+                  "&#FFCC00&l+ Cambiar nombre",
+                  List.of("", "&7Escribe un nombre diferente.", "")));
           inv.setItem(49, buildConfirmButton(disguiseName, selectedRankId));
-          inv.setItem(50, filler);
-          inv.setItem(51, buildActionItem(Material.ARROW, "back", disguiseName, selectedRankId,
-                  "&c&l← Volver",
-                  List.of("&8", "&7Regresa al menú principal.", "&8")));
-          inv.setItem(52, filler);
+          inv.setItem(52, buildActionButton(Material.ARROW, "back",
+                  disguiseName, selectedRankId,
+                  "&c&l<-- Volver al menu",
+                  List.of("", "&7Regresa al menu principal.", "")));
 
           return inv;
       }
 
-      // ═══════════════════════════════════════════════════════════════════════════
-      //  CONSTRUCTORES DE ÍTEMS
-      // ═══════════════════════════════════════════════════════════════════════════
+      // ============================================================
+      //  CONSTRUCTORES DE ITEMS
+      // ============================================================
 
       private ItemStack buildPlayerInfoHead(Player player) {
           ConfigManager   cfg = plugin.getConfigManager();
@@ -233,34 +210,23 @@ package me.zerith.zerdisguise;
           DisguiseManager.DisguiseData prev = dm.getPrevious(player.getUniqueId());
 
           String realPrefix = rp.getPlayerPrefix(player);
-          if (realPrefix == null) realPrefix = "&8[&7Default&8]&r";
+          if (realPrefix == null || realPrefix.isBlank()) realPrefix = "&8[&7Player&8]";
 
-          String currentDisguise  = cur  != null ? "&#CC88FF" + cur.disguiseName()  : "&8Ninguno";
-          String previousDisguise = prev != null ? "&7"       + prev.disguiseName() : "&8Ninguno";
-
-          String rankDisplay = realPrefix;
-          if (cur != null) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(cur.rankId())) {
-                      String gp = rp.getGroupPrefix(r.id());
-                      rankDisplay = (gp != null) ? gp : r.prefix();
-                      break;
-                  }
-              }
-          }
+          String curName  = cur  != null ? "&#CC88FF" + cur.disguiseName()  : "&8Ninguno";
+          String prevName = prev != null ? "&7"        + prev.disguiseName() : "&8Ninguno";
 
           ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
           SkullMeta meta  = (SkullMeta) skull.getItemMeta();
           meta.setOwningPlayer(player);
-          meta.displayName(noItalic(cfg.component("&f&l" + player.getName())));
+          meta.displayName(noItalic(cfg.component("&#FFFFFF&l" + player.getName())));
 
           List<Component> lore = new ArrayList<>();
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&#9966FF▌ &7Rango en juego")));
-          lore.add(noItalic(cfg.componentAny("  " + rankDisplay)));
-          lore.add(empty());
-          lore.add(noItalic(cfg.component("&#9966FF▌ &7Disfraz actual&8:  " + currentDisguise)));
-          lore.add(noItalic(cfg.component("&#9966FF▌ &7Disfraz anterior&8: " + previousDisguise)));
+          lore.add(noItalic(cfg.component("&8| &7Tu perfil")));
+          lore.add(noItalic(cfg.componentAny("&8|  &8Rango&7:    " + realPrefix)));
+          lore.add(noItalic(cfg.component("&8|  &7Disfraz&8:  " + curName)));
+          lore.add(noItalic(cfg.component("&8|  &7Anterior&8: " + prevName)));
+          lore.add(noItalic(cfg.component("&8|-------------------")));
           lore.add(empty());
           meta.lore(lore);
           skull.setItemMeta(meta);
@@ -268,48 +234,40 @@ package me.zerith.zerdisguise;
       }
 
       private ItemStack buildWriteButton() {
-          ConfigManager cfg   = plugin.getConfigManager();
-          ItemStack     skull = new ItemStack(Material.PLAYER_HEAD);
-          SkullMeta     meta  = (SkullMeta) skull.getItemMeta();
+          ConfigManager cfg  = plugin.getConfigManager();
+          ItemStack     item = new ItemStack(Material.NAME_TAG);
+          ItemMeta      meta = item.getItemMeta();
 
-          try {
-              String decoded = new String(Base64.getDecoder().decode(CUSTOM_HEAD_B64));
-              String urlStr  = decoded.replaceAll(".*\"url\":\"([^\"]+)\".*", "$1");
-              PlayerProfile  profile  = Bukkit.createPlayerProfile(UUID.randomUUID(), "ZerDisguise");
-              PlayerTextures textures = profile.getTextures();
-              textures.setSkin(URI.create(urlStr).toURL());
-              profile.setTextures(textures);
-              meta.setOwnerProfile(profile);
-          } catch (MalformedURLException | IllegalArgumentException ignored) {}
-
-          meta.displayName(noItalic(cfg.component("&#CC88FF&l✎ Escribir disfraz")));
+          meta.displayName(noItalic(cfg.component("&#CC88FF&l* Escribir nombre")));
           List<Component> lore = new ArrayList<>();
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&7Escribe en el chat el nombre")));
-          lore.add(noItalic(cfg.component("&7de cualquier jugador de Minecraft.")));
+          lore.add(noItalic(cfg.component("&7Escribe el nombre de cualquier")));
+          lore.add(noItalic(cfg.component("&7jugador de Minecraft en el chat.")));
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&#FFCC00▶ &eHaz clic para comenzar")));
+          lore.add(noItalic(cfg.component("&#FFDD00>> &eHaz clic para comenzar")));
           lore.add(empty());
           meta.lore(lore);
           meta.getPersistentDataContainer().set(KEY_ACTION, PersistentDataType.STRING, "write");
-          skull.setItemMeta(meta);
-          return skull;
+          addGlow(meta);
+          item.setItemMeta(meta);
+          return item;
       }
 
       private ItemStack buildRemoveButton(Player player) {
           ConfigManager cfg = plugin.getConfigManager();
           DisguiseManager.DisguiseData cur = plugin.getDisguiseManager()
                   .getCurrent(player.getUniqueId());
-          String currentName = cur != null ? cur.disguiseName() : "?";
+          String curName = cur != null ? "&#CC88FF" + cur.disguiseName() : "ninguno";
 
           ItemStack item = new ItemStack(Material.BARRIER);
           ItemMeta  meta = item.getItemMeta();
-          meta.displayName(noItalic(cfg.component("&c&l✖ Remover disfraz")));
+          meta.displayName(noItalic(cfg.component("&c&l[X] Quitar disfraz")));
           List<Component> lore = new ArrayList<>();
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&7Disfraz activo&8: &c" + currentName)));
+          lore.add(noItalic(cfg.component("&7Elimina tu disfraz actual.")));
+          lore.add(noItalic(cfg.component("&8Activo&7: " + curName)));
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&c▶ Haz clic para quitarlo")));
+          lore.add(noItalic(cfg.component("&c>> Clic para remover")));
           lore.add(empty());
           meta.lore(lore);
           meta.getPersistentDataContainer().set(KEY_ACTION, PersistentDataType.STRING, "remove");
@@ -317,182 +275,181 @@ package me.zerith.zerdisguise;
           return item;
       }
 
-      private ItemStack buildOnlinePlayerHead(Player target, Player viewer) {
+      private ItemStack buildOnlinePlayerHead(Player online) {
           ConfigManager cfg = plugin.getConfigManager();
           RankProvider  rp  = plugin.getRankProvider();
 
-          String prefix       = rp.getPlayerPrefix(target);
-          String primaryGroup = rp.getPlayerPrimaryGroup(target);
-          if (prefix == null) prefix = "&8[&7Default&8]";
-
-          boolean isSelf = target.equals(viewer);
+          String rankId = rp.getPlayerPrimaryGroup(online);
+          String prefix = rp.getGroupPrefix(rankId);
+          if (prefix == null || prefix.isBlank()) prefix = "&8[&7Player&8]";
 
           ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
           SkullMeta meta  = (SkullMeta) skull.getItemMeta();
-          meta.setOwningPlayer(target);
-          meta.displayName(noItalic(cfg.component(
-                  (isSelf ? "&7" : "&#CC88FF&l") + target.getName()
-                          + (isSelf ? " &8(tú)" : ""))));
+          meta.setOwningPlayer(online);
+          meta.displayName(noItalic(cfg.component("&#CC88FF&l" + online.getName())));
 
           List<Component> lore = new ArrayList<>();
           lore.add(empty());
-          lore.add(noItalic(cfg.componentAny("  " + prefix)));
+          lore.add(noItalic(cfg.componentAny("&8|  &7Rango&8: " + prefix)));
+          lore.add(noItalic(cfg.component("&8|  &7Ping&8:  &f" + online.getPing() + "ms")));
           lore.add(empty());
-          if (!isSelf) {
-              lore.add(noItalic(cfg.component("&#FFCC00▶ &eHaz clic para disfrazarte")));
-              lore.add(empty());
-          }
+          lore.add(noItalic(cfg.component("&#FFDD00>> &eClic para disfrazarte")));
+          lore.add(noItalic(cfg.component("&8   como &#CC88FF" + online.getName())));
+          lore.add(empty());
           meta.lore(lore);
-          meta.getPersistentDataContainer().set(KEY_ACTION,  PersistentDataType.STRING, "instant_disguise");
-          meta.getPersistentDataContainer().set(KEY_PLAYER,  PersistentDataType.STRING, target.getName());
-          meta.getPersistentDataContainer().set(KEY_RANK,    PersistentDataType.STRING, primaryGroup);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION, PersistentDataType.STRING, "instant_disguise");
+          pdc.set(KEY_PLAYER, PersistentDataType.STRING, online.getName());
+          pdc.set(KEY_RANK,   PersistentDataType.STRING, rankId.isBlank() ? "default" : rankId);
           skull.setItemMeta(meta);
           return skull;
       }
 
-      private ItemStack buildRankItem(RankProvider.GroupEntry group, int colorIndex,
-                                      boolean selected, String disguiseName) {
+      private ItemStack buildPreviewHead(String disguiseName, String selectedRankId) {
           ConfigManager cfg = plugin.getConfigManager();
-          Material mat = selected
-                  ? Material.LIME_STAINED_GLASS_PANE
-                  : RANK_GLASS[colorIndex % RANK_GLASS.length];
-
-          ItemStack item = new ItemStack(mat);
-          ItemMeta  meta = item.getItemMeta();
-          meta.displayName(noItalic(cfg.componentAny(group.displayPrefix())));
-
-          List<Component> lore = new ArrayList<>();
-          lore.add(empty());
-          lore.add(noItalic(cfg.component("&8Grupo&8: &7" + group.id())));
-          lore.add(empty());
-          if (selected) {
-              lore.add(noItalic(cfg.component("&a✔ Seleccionado")));
-          } else {
-              lore.add(noItalic(cfg.component("&#FFCC00▶ &eHaz clic para seleccionar")));
-          }
-          lore.add(empty());
-          meta.lore(lore);
-
-          if (selected) {
-              meta.addEnchant(Enchantment.LUCK, 1, true);
-              meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-          }
-          meta.getPersistentDataContainer().set(KEY_ACTION,  PersistentDataType.STRING, "select_rank");
-          meta.getPersistentDataContainer().set(KEY_RANK,    PersistentDataType.STRING, group.id());
-          meta.getPersistentDataContainer().set(KEY_DISGUISE,PersistentDataType.STRING, disguiseName);
-          item.setItemMeta(meta);
-          return item;
-      }
-
-      private ItemStack buildTargetHead(String disguiseName, String rankId) {
-          ConfigManager cfg = plugin.getConfigManager();
-          RankProvider  rp  = plugin.getRankProvider();
-
-          String rankPrefix = rp.getGroupPrefix(rankId);
-          if (rankPrefix == null) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(rankId)) { rankPrefix = r.prefix(); break; }
-              }
-          }
-          if (rankPrefix == null) rankPrefix = "&8[&7Default&8]";
-
+          Player target = Bukkit.getPlayerExact(disguiseName);
           ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
           SkullMeta meta  = (SkullMeta) skull.getItemMeta();
-          Player target = Bukkit.getPlayerExact(disguiseName);
           if (target != null) meta.setOwningPlayer(target);
-          else meta.setOwningPlayer(Bukkit.getOfflinePlayer(disguiseName));
+
+          String rankDisplay = selectedRankId;
+          for (ConfigManager.RankEntry r : cfg.getRanks()) {
+              if (r.id().equalsIgnoreCase(selectedRankId)) {
+                  rankDisplay = r.color() + r.name();
+                  break;
+              }
+          }
 
           meta.displayName(noItalic(cfg.component("&#CC88FF&l" + disguiseName)));
           List<Component> lore = new ArrayList<>();
           lore.add(empty());
-          lore.add(noItalic(cfg.component("&7Vista previa en el chat&8:")));
+          lore.add(noItalic(cfg.component("&8| &7Vista previa")));
+          lore.add(noItalic(cfg.component("&8|  &7Nombre&8: &#CC88FF" + disguiseName)));
+          lore.add(noItalic(cfg.component("&8|  &7Rango&8:  &f" + rankDisplay)));
+          lore.add(noItalic(cfg.component("&8|-------------------")));
           lore.add(empty());
-          lore.add(noItalic(cfg.componentAny(rankPrefix + " &#CC88FF" + disguiseName)));
+          lore.add(noItalic(cfg.component("&8Selecciona el rango abajo.")));
           lore.add(empty());
           meta.lore(lore);
           skull.setItemMeta(meta);
           return skull;
       }
 
+      private ItemStack buildRankButton(RankProvider.GroupEntry group,
+                                        String disguiseName, boolean selected, int idx) {
+          ConfigManager cfg = plugin.getConfigManager();
+          Material      mat = RANK_GLASS[idx % RANK_GLASS.length];
+          for (ConfigManager.RankEntry r : cfg.getRanks()) {
+              if (r.id().equalsIgnoreCase(group.id())) { mat = r.glass(); break; }
+          }
+
+          ItemStack item = new ItemStack(mat);
+          ItemMeta  meta = item.getItemMeta();
+          meta.displayName(noItalic(cfg.componentAny(
+                  group.displayPrefix() + " &7" + capitalize(group.id()))));
+
+          List<Component> lore = new ArrayList<>();
+          lore.add(empty());
+          lore.add(noItalic(cfg.component(selected
+                  ? "&#44FF44&l[*] Seleccionado"
+                  : "&8[ ] Clic para elegir")));
+          lore.add(empty());
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION,   PersistentDataType.STRING, "select_rank");
+          pdc.set(KEY_RANK,     PersistentDataType.STRING, group.id());
+          pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName);
+          if (selected) addGlow(meta);
+          item.setItemMeta(meta);
+          return item;
+      }
+
       private ItemStack buildConfirmButton(String disguiseName, String rankId) {
+          ConfigManager cfg = plugin.getConfigManager();
+          ItemStack item = new ItemStack(Material.LIME_CONCRETE);
+          ItemMeta  meta = item.getItemMeta();
+
+          String rankDisplay = rankId;
+          for (ConfigManager.RankEntry r : cfg.getRanks()) {
+              if (r.id().equalsIgnoreCase(rankId)) { rankDisplay = r.color() + r.name(); break; }
+          }
+
+          meta.displayName(noItalic(cfg.component("&#44FF44&l[OK] Confirmar disfraz")));
+          List<Component> lore = new ArrayList<>();
+          lore.add(empty());
+          lore.add(noItalic(cfg.component("&8|  &7Nombre&8: &#CC88FF" + disguiseName)));
+          lore.add(noItalic(cfg.component("&8|  &7Rango&8:  &f" + rankDisplay)));
+          lore.add(empty());
+          lore.add(noItalic(cfg.component("&#44FF44>> &aHaz clic para aplicar")));
+          lore.add(empty());
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION,   PersistentDataType.STRING, "confirm");
+          pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName);
+          pdc.set(KEY_RANK,     PersistentDataType.STRING, rankId);
+          addGlow(meta);
+          item.setItemMeta(meta);
+          return item;
+      }
+
+      private ItemStack buildActionButton(Material mat, String action,
+                                          String disguiseName, String rankId,
+                                          String name, List<String> loreTxt) {
           ConfigManager cfg  = plugin.getConfigManager();
-          RankProvider  rp   = plugin.getRankProvider();
-          ItemStack     item = new ItemStack(Material.LIME_DYE);
+          ItemStack     item = new ItemStack(mat);
           ItemMeta      meta = item.getItemMeta();
-          meta.displayName(noItalic(cfg.component("&a&l✔ Confirmar disfraz")));
-
-          String rDisplay = rp.getGroupPrefix(rankId);
-          List<Component> lore = new ArrayList<>();
-          lore.add(empty());
-          lore.add(noItalic(cfg.component("&7Nombre&8: &#CC88FF" + disguiseName)));
-          if (rDisplay != null)
-              lore.add(noItalic(cfg.componentAny("&7Rango&8:  " + rDisplay)));
-          else
-              lore.add(noItalic(cfg.component("&7Rango&8:  &f" + rankId)));
-          lore.add(empty());
-          lore.add(noItalic(cfg.component("&a▶ Haz clic para aplicar")));
-          lore.add(empty());
-          meta.lore(lore);
-          meta.addEnchant(Enchantment.LUCK, 1, true);
-          meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-          meta.getPersistentDataContainer().set(KEY_ACTION,  PersistentDataType.STRING, "confirm");
-          meta.getPersistentDataContainer().set(KEY_DISGUISE,PersistentDataType.STRING, disguiseName);
-          meta.getPersistentDataContainer().set(KEY_RANK,    PersistentDataType.STRING, rankId);
-          item.setItemMeta(meta);
-          return item;
-      }
-
-      private ItemStack buildPageNavButton(Material mat, String action, int targetPage,
-                                           String name, List<String> loreLines) {
-          ConfigManager   cfg  = plugin.getConfigManager();
-          ItemStack       item = new ItemStack(mat);
-          ItemMeta        meta = item.getItemMeta();
           meta.displayName(noItalic(cfg.component(name)));
           List<Component> lore = new ArrayList<>();
-          for (String l : loreLines) lore.add(noItalic(cfg.component(l)));
+          for (String l : loreTxt) lore.add(noItalic(l.isEmpty() ? empty() : cfg.component(l)));
           meta.lore(lore);
-          meta.getPersistentDataContainer().set(KEY_ACTION, PersistentDataType.STRING, action);
-          meta.getPersistentDataContainer().set(KEY_PAGE,   PersistentDataType.INTEGER, targetPage);
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION,   PersistentDataType.STRING, action);
+          pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName != null ? disguiseName : "");
+          pdc.set(KEY_RANK,     PersistentDataType.STRING, rankId != null ? rankId : "");
           item.setItemMeta(meta);
           return item;
       }
 
-      private ItemStack buildActionItem(Material mat, String action, String disguise,
-                                        String rank, String name, List<String> loreLines) {
-          ConfigManager   cfg  = plugin.getConfigManager();
-          ItemStack       item = new ItemStack(mat);
-          ItemMeta        meta = item.getItemMeta();
+      private ItemStack buildLabel(Material mat, String name, List<String> loreTxt) {
+          ConfigManager cfg  = plugin.getConfigManager();
+          ItemStack     item = new ItemStack(mat);
+          ItemMeta      meta = item.getItemMeta();
           meta.displayName(noItalic(cfg.component(name)));
           List<Component> lore = new ArrayList<>();
-          for (String l : loreLines) lore.add(noItalic(cfg.component(l)));
+          for (String l : loreTxt) lore.add(noItalic(l.isEmpty() ? empty() : cfg.component(l)));
           meta.lore(lore);
-          meta.getPersistentDataContainer().set(KEY_ACTION,  PersistentDataType.STRING, action);
-          meta.getPersistentDataContainer().set(KEY_DISGUISE,PersistentDataType.STRING, disguise);
-          meta.getPersistentDataContainer().set(KEY_RANK,    PersistentDataType.STRING, rank);
           item.setItemMeta(meta);
           return item;
       }
 
-      private ItemStack buildSectionLabel(String title, List<String> loreLines, Material mat) {
-          ConfigManager   cfg  = plugin.getConfigManager();
-          ItemStack       item = new ItemStack(mat);
-          ItemMeta        meta = item.getItemMeta();
-          meta.displayName(noItalic(cfg.component(title)));
+      private ItemStack navButton(String action, int targetPage, String name, List<String> loreTxt) {
+          ConfigManager cfg  = plugin.getConfigManager();
+          ItemStack     item = new ItemStack(Material.ARROW);
+          ItemMeta      meta = item.getItemMeta();
+          meta.displayName(noItalic(cfg.component(name)));
           List<Component> lore = new ArrayList<>();
-          for (String l : loreLines) lore.add(noItalic(cfg.component(l)));
+          for (String l : loreTxt) lore.add(noItalic(l.isEmpty() ? empty() : cfg.component(l)));
           meta.lore(lore);
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION, PersistentDataType.STRING, action);
+          pdc.set(KEY_PAGE,   PersistentDataType.INTEGER, targetPage);
           item.setItemMeta(meta);
           return item;
       }
 
-      // ── Helpers ───────────────────────────────────────────────────────────────
+      // ============================================================
+      //  HELPERS
+      // ============================================================
 
       private static ItemStack glass(Material mat) {
-          ItemStack g    = new ItemStack(mat);
-          ItemMeta  meta = g.getItemMeta();
+          ItemStack item = new ItemStack(mat);
+          ItemMeta  meta = item.getItemMeta();
           meta.displayName(Component.empty());
-          g.setItemMeta(meta);
-          return g;
+          item.setItemMeta(meta);
+          return item;
       }
 
       private static Component noItalic(Component c) {
@@ -501,6 +458,16 @@ package me.zerith.zerdisguise;
 
       private static Component empty() {
           return Component.empty().decoration(TextDecoration.ITALIC, false);
+      }
+
+      private static void addGlow(ItemMeta meta) {
+          meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
+          meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+      }
+
+      private static String capitalize(String s) {
+          if (s == null || s.isEmpty()) return s;
+          return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
       }
   }
   
