@@ -1,0 +1,54 @@
+name: Build and Release
+
+  on:
+    push:
+      tags:
+        - 'v*'
+
+  jobs:
+    build:
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Set up Java 17
+          uses: actions/setup-java@v4
+          with:
+            java-version: '17'
+            distribution: 'temurin'
+            cache: maven
+
+        - name: Build with Maven
+          run: mvn clean package -B --no-transfer-progress
+
+        - name: Get version from tag
+          id: version
+          run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+        - name: Create GitHub Release
+          uses: softprops/action-gh-release@v2
+          with:
+            name: "ZerDisguise v${{ steps.version.outputs.VERSION }}"
+            files: target/ZerDisguise-*.jar
+            body: |
+              ## ZerDisguise v${{ steps.version.outputs.VERSION }}
+
+              Descarga el JAR y ponlo en la carpeta `plugins/` de tu servidor Paper/Spigot 1.20-1.21+.
+
+              ### Requisitos
+              - Paper / Spigot 1.20 – 1.21+
+              - Java 17+
+              - LuckPerms o Vault *(recomendado para rangos reales)*
+              - PlaceholderAPI *(opcional)*
+
+              ### Instalación
+              1. Coloca el JAR en `plugins/`
+              2. Reinicia el servidor
+              3. Usa `/disguise reload` para aplicar cambios
+            draft: false
+            prerelease: false
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
