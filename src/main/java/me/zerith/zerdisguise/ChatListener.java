@@ -37,6 +37,12 @@ public class ChatListener implements Listener {
         Player player = e.getPlayer();
         if (!awaitingInput.containsKey(player.getUniqueId())) return;
 
+        // Si perdió el permiso entre que abrió el menú y escribió
+        if (!player.hasPermission("zerdisguise.use")) {
+            awaitingInput.remove(player.getUniqueId());
+            return;
+        }
+
         e.setCancelled(true);
         awaitingInput.remove(player.getUniqueId());
 
