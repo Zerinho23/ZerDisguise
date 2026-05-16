@@ -18,6 +18,8 @@ public class ZerDisguise extends JavaPlugin {
     private static ZerDisguise instance;
     private ConfigManager   configManager;
     private DisguiseManager disguiseManager;
+    private SkinFetcher     skinFetcher;
+    private SkinApplier     skinApplier;
     private ChatListener    chatListener;
 
     @Override
@@ -27,6 +29,8 @@ public class ZerDisguise extends JavaPlugin {
         configManager   = new ConfigManager(this);
         configManager.loadConfig();
 
+        skinFetcher     = new SkinFetcher(this);
+        skinApplier     = new SkinApplier(this);
         disguiseManager = new DisguiseManager(this);
         chatListener    = new ChatListener(this);
 
@@ -79,5 +83,7 @@ public class ZerDisguise extends JavaPlugin {
     public static ZerDisguise getInstance()       { return instance; }
     public ConfigManager    getConfigManager()    { return configManager; }
     public DisguiseManager  getDisguiseManager()  { return disguiseManager; }
+    public SkinFetcher      getSkinFetcher()      { return skinFetcher; }
+    public SkinApplier      getSkinApplier()      { return skinApplier; }
     public ChatListener     getChatListener()     { return chatListener; }
 }
