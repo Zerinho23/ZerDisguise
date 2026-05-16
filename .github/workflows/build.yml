@@ -35,18 +35,13 @@ name: Build and Release
             body: |
               ## ZerDisguise v${{ steps.version.outputs.VERSION }}
 
-              Descarga el JAR y ponlo en la carpeta `plugins/` de tu servidor Paper/Spigot 1.20-1.21+.
+              Descarga el JAR y colócalo en `plugins/` de tu servidor Paper/Spigot 1.20-1.21+.
 
               ### Requisitos
               - Paper / Spigot 1.20 – 1.21+
               - Java 17+
-              - LuckPerms o Vault *(recomendado para rangos reales)*
+              - LuckPerms o Vault *(recomendado)*
               - PlaceholderAPI *(opcional)*
-
-              ### Instalación
-              1. Coloca el JAR en `plugins/`
-              2. Reinicia el servidor
-              3. Usa `/disguise reload` para aplicar cambios
             draft: false
             prerelease: false
           env:
