@@ -1,5 +1,5 @@
 name: ZerDisguise
-version: 1.2.0
+version: 1.3.0
 main: me.zerith.zerdisguise.ZerDisguise
 api-version: "1.20"
 description: Plugin de disfraces con GUI interactiva
@@ -7,6 +7,7 @@ author: zerinho23
 softdepend:
   - Vault
   - LuckPerms
+  - PlaceholderAPI
 
 commands:
   disguise:
@@ -34,6 +35,12 @@ permissions:
   zerdisguise.rank.vip:
     description: Puede seleccionar el rango VIP
     default: op
+  zerdisguise.rank.mod:
+    description: Puede seleccionar el rango Mod
+    default: op
   zerdisguise.rank.admin:
     description: Puede seleccionar el rango Admin
+    default: op
+  zerdisguise.rank.owner:
+    description: Puede seleccionar el rango Owner
     default: op
