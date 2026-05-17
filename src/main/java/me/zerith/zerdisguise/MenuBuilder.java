@@ -47,6 +47,7 @@ public class MenuBuilder {
     public static NamespacedKey KEY_RANK;
     public static NamespacedKey KEY_DISGUISE;
     public static NamespacedKey KEY_PAGE;
+    public static NamespacedKey KEY_RANK_PAGE;
 
     private final ZerDisguise plugin;
 
@@ -56,6 +57,7 @@ public class MenuBuilder {
         KEY_RANK     = new NamespacedKey(plugin, "zd_rank");
         KEY_DISGUISE = new NamespacedKey(plugin, "zd_disguise");
         KEY_PAGE     = new NamespacedKey(plugin, "zd_page");
+        KEY_RANK_PAGE = new NamespacedKey(plugin, "zd_rank_page");
     }
 
     public MenuBuilder(ZerDisguise plugin) {
@@ -95,7 +97,9 @@ public class MenuBuilder {
 
         // ── Fila 1: cabeza del jugador + botones ──────────────────
         inv.setItem(9, buildPlayerInfoHead(player));
-        for (int i = 10; i <= 12; i++) inv.setItem(i, filler);
+        inv.setItem(10, filler);
+          inv.setItem(mc.getRankSelectorSlot(), buildRankSelectorButton(player, mc));
+          inv.setItem(12, filler);
         inv.setItem(mc.getWriteSlot(), buildWriteButton(mc));
         for (int i = 14; i <= 16; i++) inv.setItem(i, filler);
         inv.setItem(mc.getRemoveSlot(),
@@ -255,6 +259,113 @@ public class MenuBuilder {
     }
 
     // ─────────────────────────────────────────────────────────────
+      //  MENÚ DE SELECCIÓN DE RANGO VISUAL
+      // ─────────────────────────────────────────────────────────────
+
+      /**
+       * Construye el menú de selección de rango visual.
+       * Muestra todos los grupos de LuckPerms/Vault (o config.yml si no hay integración).
+       * Al elegir un rango, solo se aplica el prefijo visual — sin permisos reales.
+       *
+       * Layout (54 slots):
+       *   Fila 0  → borde
+       *   Fila 1  → relleno + etiqueta central
+       *   Fila 2  → divisor
+       *   Filas 3-4 → ítems de rango (hasta 18 por página)
+       *   Fila 5  → [◄ Volver:45] [◄ Prev:46] [Página:49] [Sig ►:52] [corner:53]
+       */
+      public Inventory buildRankMenu(Player player, int page) {
+          ConfigManager cfg = plugin.getConfigManager();
+          MenuConfig    mc  = plugin.getMenuConfig();
+          RankProvider  rp  = plugin.getRankProvider();
+
+          ZerInventoryHolder holder = new ZerInventoryHolder(ZerInventoryHolder.MenuType.RANK);
+          Inventory inv = Bukkit.createInventory(holder, 54,
+                  cfg.component(mc.getRankMenuTitle()));
+          holder.setInventory(inv);
+
+          ItemStack border  = glass(mc.getBorderMaterial(),  "");
+          ItemStack filler  = glass(mc.getFillerMaterial(),  "");
+          ItemStack divider = glass(mc.getDividerMaterial(), "");
+          ItemStack corner  = glass(mc.getCornerMaterial(),  "");
+          ItemStack accent  = glass(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "");
+
+          // ── Fila 0: borde superior ────────────────────────────────
+          inv.setItem(0, corner);
+          inv.setItem(1, accent);
+          for (int i = 2; i <= 6; i++) inv.setItem(i, border);
+          inv.setItem(7, accent);
+          inv.setItem(8, corner);
+
+          // ── Fila 1: relleno + etiqueta central ───────────────────
+          for (int i = 9; i <= 17; i++) inv.setItem(i, filler);
+          inv.setItem(13, buildLabel(
+                  Material.CHEST,
+                  "&#CC88FF&l\u2726 Selector de Rango Visual",
+                  List.of(
+                      "&8\u25B8 &7Elige un rango para cambiar",
+                      "&8  &7solo tu prefijo visible.",
+                      "",
+                      "&8\u25B8 &o&7Sin permisos reales.",
+                      "&8\u25B8 &7Usa &c\u2716 Quitar disfraz &7para restaurar."
+                  )
+          ));
+
+          // ── Fila 2: divisor ───────────────────────────────────────
+          for (int i = 18; i < 27; i++) inv.setItem(i, divider);
+
+          // ── Filas 3-4: ítems de rango ─────────────────────────────
+          List<RankProvider.GroupEntry> groups = rp.getAllGroups();
+          int total      = groups.size();
+          int totalPages = Math.max(1, (int) Math.ceil(total / (double) PLAYERS_PER_PAGE));
+          int safePage   = Math.max(0, Math.min(page, totalPages - 1));
+          int start      = safePage * PLAYERS_PER_PAGE;
+          Material[] glassFallback = mc.getRankGlassFallback();
+
+          int slot = 27;
+          for (int i = start; i < Math.min(start + PLAYERS_PER_PAGE, total); i++) {
+              inv.setItem(slot++, buildRankItem(groups.get(i), i, glassFallback, cfg));
+          }
+          while (slot <= 44) inv.setItem(slot++, filler);
+
+          // ── Fila 5: navegación ────────────────────────────────────
+          inv.setItem(45, buildBackToMainButton(mc));
+          inv.setItem(46, border);
+          inv.setItem(47, border);
+          inv.setItem(48, border);
+          inv.setItem(49, border);
+          inv.setItem(50, border);
+          inv.setItem(51, border);
+          inv.setItem(52, border);
+          inv.setItem(53, corner);
+
+          if (safePage > 0) {
+              inv.setItem(mc.getPrevSlot(), navRankButton(
+                      "rank_prev_page", safePage - 1,
+                      mc.getPrevMaterial(), mc.getPrevName(),
+                      List.of("&8\u25B8 &7Regresa a la pagina &f" + safePage,
+                              "&8\u25B8 &7de &f" + totalPages + " &7en total.")
+              ));
+          }
+          inv.setItem(mc.getPageInfoSlot(), buildLabel(
+                  mc.getPageInfoMaterial(),
+                  "&f&lPagina &e" + (safePage + 1) + " &8/ &e" + totalPages,
+                  List.of("&8\u25B8 &7Rangos disponibles&8: &f" + total,
+                          "&8\u25B8 &7Navega con las flechas.")
+          ));
+          if (safePage < totalPages - 1) {
+              inv.setItem(mc.getNextSlot(), navRankButton(
+                      "rank_next_page", safePage + 1,
+                      mc.getNextMaterial(), mc.getNextName(),
+                      List.of("&8\u25B8 &7Avanza a la pagina &f" + (safePage + 2),
+                              "&8\u25B8 &7de &f" + totalPages + " &7en total.")
+              ));
+          }
+
+          return inv;
+      }
+
+      // ─────────────────────────────────────────────────────────────
     //  CONSTRUCTORES DE ÍTEMS — MENÚ PRINCIPAL
     // ─────────────────────────────────────────────────────────────
 
@@ -649,4 +760,112 @@ public class MenuBuilder {
         if (s == null || s.isEmpty()) return s;
         return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
     }
+    // ─────────────────────────────────────────────────────────────
+      //  HELPERS DEL MENÚ DE RANGO
+      // ─────────────────────────────────────────────────────────────
+
+      private ItemStack buildRankSelectorButton(Player player, MenuConfig mc) {
+          ConfigManager   cfg = plugin.getConfigManager();
+          DisguiseManager dm  = plugin.getDisguiseManager();
+
+          String  activeRank = dm.getVisualRank(player.getUniqueId());
+          boolean hasActive  = activeRank != null || dm.isDisguised(player);
+
+          ItemStack item = new ItemStack(mc.getRankSelectorMaterial());
+          ItemMeta  meta = item.getItemMeta();
+          meta.displayName(ni(cfg.component(mc.getRankSelectorName())));
+
+          List<String>    loreCfg = mc.getRankSelectorLore();
+          List<Component> lore    = new ArrayList<>();
+          if (loreCfg.isEmpty()) {
+              addLoreLine(lore, cfg, "&7Elige un rango para cambiar");
+              addLoreLine(lore, cfg, "&7solo tu prefijo visible.");
+              addLoreLine(lore, cfg, "");
+              addLoreLine(lore, cfg, "&8Nota&8: &o&7sin permisos reales.");
+              if (hasActive) {
+                  addLoreLine(lore, cfg, "");
+                  addLoreLine(lore, cfg, "&8Rango actual&8: &#CC88FF"
+                          + (activeRank != null ? activeRank : "del disfraz"));
+              }
+              addLoreLine(lore, cfg, "");
+              addLoreLine(lore, cfg, "&#FFDD00&l\u00BB &eClic para abrir");
+          } else {
+              for (String line : loreCfg) lore.add(ni(cfg.component(line)));
+          }
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION, PersistentDataType.STRING, "rank_menu");
+          item.setItemMeta(meta);
+          return item;
+      }
+
+      private ItemStack buildRankItem(RankProvider.GroupEntry group, int index,
+                                      Material[] glassFallback, ConfigManager cfg) {
+          Material mat = glassFallback[index % glassFallback.length];
+
+          for (ConfigManager.RankEntry r : cfg.getRanks()) {
+              if (r.id().equalsIgnoreCase(group.id())) {
+                  mat = r.glass();
+                  break;
+              }
+          }
+
+          ItemStack item = new ItemStack(mat);
+          ItemMeta  meta = item.getItemMeta();
+          meta.displayName(ni(cfg.componentAny(group.displayPrefix())));
+
+          List<Component> lore = new ArrayList<>();
+          addLoreLine(lore, cfg, "&8ID&8: &7" + group.id());
+          addLoreLine(lore, cfg, "");
+          addLoreLine(lore, cfg, "&8\u25B8 &7Solo cambia el prefijo visible.");
+          addLoreLine(lore, cfg, "&8\u25B8 &o&7Sin permisos reales.");
+          addLoreLine(lore, cfg, "");
+          addLoreLine(lore, cfg, "&#FFDD00&l\u00BB &eClic para aplicar");
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION, PersistentDataType.STRING, "select_rank");
+          pdc.set(KEY_RANK,   PersistentDataType.STRING, group.id());
+          item.setItemMeta(meta);
+          return item;
+      }
+
+      private ItemStack buildBackToMainButton(MenuConfig mc) {
+          ConfigManager cfg  = plugin.getConfigManager();
+          ItemStack     item = new ItemStack(mc.getBackMaterial());
+          ItemMeta      meta = item.getItemMeta();
+          meta.displayName(ni(cfg.component("&c&l\u25C4 Volver al menu")));
+
+          List<Component> lore = new ArrayList<>();
+          addLoreLine(lore, cfg, "&7Regresa al menu principal.");
+          addLoreLine(lore, cfg, "");
+          addLoreLine(lore, cfg, "&c&l\u00BB &cClic para volver");
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION, PersistentDataType.STRING, "rank_back");
+          item.setItemMeta(meta);
+          return item;
+      }
+
+      private ItemStack navRankButton(String action, int targetPage, Material mat,
+                                      String name, List<String> loreLines) {
+          ConfigManager   cfg  = plugin.getConfigManager();
+          ItemStack       item = new ItemStack(mat);
+          ItemMeta        meta = item.getItemMeta();
+          meta.displayName(ni(cfg.component(name)));
+
+          List<Component> lore = new ArrayList<>();
+          for (String line : loreLines) addLoreLine(lore, cfg, line);
+          meta.lore(lore);
+
+          var pdc = meta.getPersistentDataContainer();
+          pdc.set(KEY_ACTION,    PersistentDataType.STRING,  action);
+          pdc.set(KEY_RANK_PAGE, PersistentDataType.INTEGER, targetPage);
+          item.setItemMeta(meta);
+          return item;
+      }
+
+  
 }
