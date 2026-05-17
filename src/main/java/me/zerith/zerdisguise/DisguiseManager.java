@@ -1,5 +1,6 @@
 package me.zerith.zerdisguise;
 
+  import net.kyori.adventure.text.Component;
   import org.bukkit.Bukkit;
   import org.bukkit.entity.Player;
 
@@ -21,9 +22,11 @@ package me.zerith.zerdisguise;
 
       public record DisguiseData(String disguiseName, String rankId) {}
 
-      private final Map<UUID, DisguiseData> current        = new HashMap<>();
-      private final Map<UUID, DisguiseData> previous       = new HashMap<>();
-      private final Map<UUID, String>       visualRankOnly = new HashMap<>();
+      private final Map<UUID, DisguiseData> current         = new HashMap<>();
+      private final Map<UUID, DisguiseData> previous        = new HashMap<>();
+      private final Map<UUID, String>       visualRankOnly  = new HashMap<>();
+      /** Momento (ms) en que se aplicó el disfraz — para calcular el tiempo en la actionbar. */
+      private final Map<UUID, Long>         disguiseStart   = new HashMap<>();
 
       private final ZerDisguise plugin;
 
@@ -71,6 +74,8 @@ package me.zerith.zerdisguise;
 
           current.put(player.getUniqueId(), new DisguiseData(disguiseName, resolvedRankId));
           visualRankOnly.remove(player.getUniqueId());
+          // Solo restablecer el tiempo si es un disfraz nuevo (no re-aplicación tras respawn)
+          disguiseStart.putIfAbsent(player.getUniqueId(), System.currentTimeMillis());
 
           String display = cfg.colorize(rankPrefix.isBlank()
                   ? "&d" + disguiseName : rankPrefix + " &d" + disguiseName);
@@ -137,6 +142,7 @@ package me.zerith.zerdisguise;
               current.put(player.getUniqueId(), new DisguiseData(cur.disguiseName(), rankId));
           }
           visualRankOnly.put(player.getUniqueId(), rankId);
+          disguiseStart.putIfAbsent(player.getUniqueId(), System.currentTimeMillis());
 
           String display = cfg.colorize(rankPrefix.isBlank()
                   ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
@@ -177,6 +183,7 @@ package me.zerith.zerdisguise;
           player.setDisplayName(display);
           player.setPlayerListName(display);
           sa.applyNameplate(player, rankPrefix);
+          // El tiempo de inicio NO se reinicia (el disfraz sigue siendo el mismo)
 
           if (cur != null) {
               final String fn = nameToUse;
@@ -207,6 +214,7 @@ package me.zerith.zerdisguise;
           DisguiseData cur = current.remove(player.getUniqueId());
           if (cur != null) previous.put(player.getUniqueId(), cur);
           visualRankOnly.remove(player.getUniqueId());
+          disguiseStart.remove(player.getUniqueId());
 
           player.setDisplayName(player.getName());
           player.setPlayerListName(player.getName());
@@ -218,10 +226,67 @@ package me.zerith.zerdisguise;
 
       public void cleanupOnQuit(Player player) {
           visualRankOnly.remove(player.getUniqueId());
+          disguiseStart.remove(player.getUniqueId());
           DisguiseData cur = current.remove(player.getUniqueId());
           if (cur != null) previous.put(player.getUniqueId(), cur);
           plugin.getSkinApplier().removeNameplate(player);
           plugin.getSkinApplier().cleanupPlayer(player.getUniqueId());
+      }
+
+      // ──────────────────────────────────────────────────────────────
+      //  Action Bar (tick global desde ZerDisguise)
+      // ──────────────────────────────────────────────────────────────
+
+      /**
+       * Llamado cada N ticks desde ZerDisguise. Envía la barra de acción a
+       * todos los jugadores que tengan un disfraz activo.
+       */
+      public void tickActionbar() {
+          ConfigManager cfg = plugin.getConfigManager();
+          if (!cfg.isActionbarEnabled()) return;
+
+          String format = cfg.getActionbarFormat();
+
+          for (Player player : Bukkit.getOnlinePlayers()) {
+              DisguiseData cur      = current.get(player.getUniqueId());
+              String       rankOnly = visualRankOnly.get(player.getUniqueId());
+              if (cur == null && rankOnly == null) continue;
+
+              Long startMillis = disguiseStart.get(player.getUniqueId());
+              if (startMillis == null) continue;
+
+              long elapsed = (System.currentTimeMillis() - startMillis) / 1000L;
+              long min     = elapsed / 60;
+              long sec     = elapsed % 60;
+
+              String nombre = cur != null ? cur.disguiseName() : player.getName();
+              String rankId = cur != null ? cur.rankId() : rankOnly;
+              String rango  = resolveRankPrefix(rankId);
+
+              String msg = format
+                      .replace("{nombre}",     nombre)
+                      .replace("{rango}",      rango.isBlank() ? "Ninguno" : rango)
+                      .replace("{tiempo}",     String.format("%02d:%02d", min, sec))
+                      .replace("{tiempo_min}", String.valueOf(min))
+                      .replace("{tiempo_seg}", String.format("%02d", sec));
+
+              player.sendActionBar(cfg.component(msg));
+          }
+      }
+
+      private String resolveRankPrefix(String rankId) {
+          if (rankId == null || rankId.isBlank()) return "";
+          ConfigManager cfg = plugin.getConfigManager();
+          RankProvider  rp  = plugin.getRankProvider();
+
+          String prefix = rp.getGroupPrefix(rankId);
+          if (prefix == null || prefix.isBlank()) {
+              for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                  if (r.id().equalsIgnoreCase(rankId)) { prefix = r.prefix(); break; }
+              }
+          }
+          // Devolver con colores para que el usuario pueda controlarlos en el format
+          return prefix != null ? prefix : capitalize(rankId);
       }
 
       // ──────────────────────────────────────────────────────────────
@@ -233,6 +298,7 @@ package me.zerith.zerdisguise;
       public String  getVisualRank(UUID uuid)     { return visualRankOnly.get(uuid); }
       public DisguiseData getCurrent(UUID uuid)   { return current.get(uuid); }
       public DisguiseData getPrevious(UUID uuid)  { return previous.get(uuid); }
+      public Long getDisguiseStart(UUID uuid)     { return disguiseStart.get(uuid); }
 
       private static String capitalize(String s) {
           if (s == null || s.isEmpty()) return s;
