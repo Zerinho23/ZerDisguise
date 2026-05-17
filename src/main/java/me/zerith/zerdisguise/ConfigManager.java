@@ -93,6 +93,7 @@ public class ConfigManager {
     public String getMsgInvalidName()   { return plugin.getConfig().getString("messages.invalid-name",    "&cNombre invalido. Solo letras, numeros y _ (max 16)."); }
     public String getMsgBypass()        { return plugin.getConfig().getString("messages.bypass",          "&cEse jugador no puede ser disfrazado por otros."); }
     public String getMsgNotDisguised()  { return plugin.getConfig().getString("messages.not-disguised",   "&7No tienes ningun disfraz activo."); }
+      public String getMsgRankApplied()    { return plugin.getConfig().getString("messages.rank-applied",     "&7Rango visual aplicado&8: &f{rank}"); }
 
     // ── Colores / Components ──────────────────────────────────────
 
