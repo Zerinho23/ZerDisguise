@@ -1,69 +1,70 @@
 # ╔══════════════════════════════════════════════════╗
-# ║           ZerDisguise  ·  config.yml            ║
-# ║         Desarrollado por zerinho23               ║
-# ╚══════════════════════════════════════════════════╝
+  # ║           ZerDisguise  ·  config.yml            ║
+  # ║         Desarrollado por zerinho23               ║
+  # ╚══════════════════════════════════════════════════╝
 
-prefix: "&8[&#CC88FF&lZerDisguise&8] &r"
+  prefix: "&8[&#CC88FF&lZerDisguise&8] &r"
 
-menu:
-  title:         "&8» &#CC88FFZerDisguise &8«"
-  confirm-title: "&8» &#CC88FF&lConfirmar disfraz &8«"
-  size: 54
+  menu:
+    title:         "&8» &#CC88FFZerDisguise &8«"
+    confirm-title: "&8» &#CC88FF&lConfirmar disfraz &8«"
+    size: 54
 
-prompt:
-  title:    "&#CC88FF&lEscribe tu disfraz"
-  subtitle: "&7Escribe el nombre en el chat..."
-  fade-in:  10
-  stay:     80
-  fade-out: 10
+  prompt:
+    title:    "&#CC88FF&lEscribe tu disfraz"
+    subtitle: "&7Escribe el nombre en el chat..."
+    fade-in:  10
+    stay:     80
+    fade-out: 10
 
-# ── Rangos (fallback si no hay LuckPerms/Vault) ──────────────
-ranks:
-  owner:
-    name: "Owner"
-    color: "&4"
-    prefix: "&4[&cOwner&4]&r"
-    permission: "zerdisguise.rank.owner"
-    material: NETHER_STAR
-    glass: RED_STAINED_GLASS_PANE
-  admin:
-    name: "Admin"
-    color: "&c"
-    prefix: "&c[&4Admin&c]&r"
-    permission: "zerdisguise.rank.admin"
-    material: DIAMOND
-    glass: ORANGE_STAINED_GLASS_PANE
-  mod:
-    name: "Mod"
-    color: "&6"
-    prefix: "&6[&eMod&6]&r"
-    permission: "zerdisguise.rank.mod"
-    material: GOLD_INGOT
-    glass: YELLOW_STAINED_GLASS_PANE
-  vip:
-    name: "VIP"
-    color: "&e"
-    prefix: "&e[&6VIP&e]&r"
-    permission: "zerdisguise.rank.vip"
-    material: EMERALD
-    glass: LIME_STAINED_GLASS_PANE
-  default:
-    name: "Default"
-    color: "&7"
-    prefix: "&7[&fDefault&7]&r"
-    permission: "zerdisguise.rank.default"
-    material: STONE
-    glass: GRAY_STAINED_GLASS_PANE
+  # ── Rangos (fallback si no hay LuckPerms/Vault) ────────────────────
+  ranks:
+    owner:
+      name: "Owner"
+      color: "&4"
+      prefix: "&4[&cOwner&4]&r"
+      permission: "zerdisguise.rank.owner"
+      material: NETHER_STAR
+      glass: RED_STAINED_GLASS_PANE
+    admin:
+      name: "Admin"
+      color: "&c"
+      prefix: "&c[&4Admin&c]&r"
+      permission: "zerdisguise.rank.admin"
+      material: DIAMOND
+      glass: ORANGE_STAINED_GLASS_PANE
+    mod:
+      name: "Mod"
+      color: "&6"
+      prefix: "&6[&eMod&6]&r"
+      permission: "zerdisguise.rank.mod"
+      material: GOLD_INGOT
+      glass: YELLOW_STAINED_GLASS_PANE
+    vip:
+      name: "VIP"
+      color: "&e"
+      prefix: "&e[&6VIP&e]&r"
+      permission: "zerdisguise.rank.vip"
+      material: EMERALD
+      glass: LIME_STAINED_GLASS_PANE
+    default:
+      name: "Default"
+      color: "&7"
+      prefix: "&7[&fDefault&7]&r"
+      permission: "zerdisguise.rank.default"
+      material: STONE
+      glass: GRAY_STAINED_GLASS_PANE
 
-# ── Mensajes ─────────────────────────────────────────────────
-messages:
-  no-permission:     "&cNo tienes permiso para hacer eso."
-  player-only:       "&cEste comando es solo para jugadores."
-  disguise-applied:  "&7Disfraz aplicado&8: &#CC88FF{disguise} &8| &7Rango&8: &f{rank}"
-  disguise-removed:  "&aDisfraz removido correctamente."
-  player-not-found:  "&cJugador &f{player} &cno encontrado."
-  write-disguise:    "&#CC88FF&lEscribe el nombre en el chat &8(&7cancel &8= cancelar&8)"
-  cancelled:         "&cCancelado."
-  reload:            "&aConfiguracion recargada correctamente."
-  invalid-name:      "&cNombre invalido. Solo letras, numeros y _ &8(max 16 caracteres)."
+  # ── Mensajes ──────────────────────────────────────────────
+  messages:
+    no-permission:     "&cNo tienes permiso para hacer eso."
+    player-only:       "&cEste comando es solo para jugadores."
+    disguise-applied:  "&7Disfraz aplicado&8: &#CC88FF{disguise} &8| &7Rango&8: &f{rank}"
+    disguise-removed:  "&aDisfraz removido correctamente."
+    player-not-found:  "&cJugador &f{player} &cno encontrado."
+    write-disguise:    "&#CC88FF&lEscribe el nombre en el chat &8(&7cancel &8= cancelar&8)"
+    cancelled:         "&cCancelado."
+    reload:            "&aConfiguracion recargada correctamente."
+    invalid-name:      "&cNombre invalido. Solo letras, numeros y _ &8(max 16 caracteres)."
     rank-applied:      "&7Rango visual aplicado&8: &f{rank}"
+  
