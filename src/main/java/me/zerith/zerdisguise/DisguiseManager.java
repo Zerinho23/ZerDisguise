@@ -1,308 +1,306 @@
 package me.zerith.zerdisguise;
 
-  import net.kyori.adventure.text.Component;
-  import org.bukkit.Bukkit;
-  import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
-  import java.util.HashMap;
-  import java.util.Map;
-  import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
-  /**
-   * Gestiona los disfraces activos y anteriores de cada jugador.
-   *
-   * Modos:
-   *  - Disfraz completo: cambia skin, nombre y rango visualmente.
-   *  - Rango visual:     solo cambia el prefijo visible (nameplate + displayName),
-   *                      sin cambiar la skin ni otorgar permisos reales.
-   *
-   * El disfraz persiste tras la muerte — solo se elimina con /undisguise.
-   */
-  public class DisguiseManager {
+/**
+ * Gestiona los disfraces activos y anteriores de cada jugador.
+ *
+ * Modos:
+ *  - Disfraz completo: cambia skin, nombre y rango visualmente.
+ *  - Rango visual:     solo cambia el prefijo visible (nameplate + displayName),
+ *                      sin cambiar la skin ni otorgar permisos reales.
+ *
+ * El disfraz persiste tras la muerte — solo se elimina con /undisguise.
+ */
+public class DisguiseManager {
 
-      public record DisguiseData(String disguiseName, String rankId) {}
+    public record DisguiseData(String disguiseName, String rankId) {}
 
-      private final Map<UUID, DisguiseData> current         = new HashMap<>();
-      private final Map<UUID, DisguiseData> previous        = new HashMap<>();
-      private final Map<UUID, String>       visualRankOnly  = new HashMap<>();
-      /** Momento (ms) en que se aplicó el disfraz — para calcular el tiempo en la actionbar. */
-      private final Map<UUID, Long>         disguiseStart   = new HashMap<>();
+    private final Map<UUID, DisguiseData> current         = new HashMap<>();
+    private final Map<UUID, DisguiseData> previous        = new HashMap<>();
+    private final Map<UUID, String>       visualRankOnly  = new HashMap<>();
+    /** Momento (ms) en que se aplicó el disfraz — para calcular el tiempo en la actionbar. */
+    private final Map<UUID, Long>         disguiseStart   = new HashMap<>();
 
-      private final ZerDisguise plugin;
+    private final ZerDisguise plugin;
 
-      public DisguiseManager(ZerDisguise plugin) {
-          this.plugin = plugin;
-      }
+    public DisguiseManager(ZerDisguise plugin) {
+        this.plugin = plugin;
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Disfraz completo
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Disfraz completo
+    // ──────────────────────────────────────────────────────────────
 
-      public void applyDisguise(Player player, String disguiseName, String rankId) {
-          ConfigManager cfg = plugin.getConfigManager();
-          RankProvider  rp  = plugin.getRankProvider();
-          SkinApplier   sa  = plugin.getSkinApplier();
+    public void applyDisguise(Player player, String disguiseName, String rankId) {
+        ConfigManager cfg = plugin.getConfigManager();
+        RankProvider  rp  = plugin.getRankProvider();
+        SkinApplier   sa  = plugin.getSkinApplier();
 
-          DisguiseData cur = current.get(player.getUniqueId());
-          if (cur != null) previous.put(player.getUniqueId(), cur);
+        DisguiseData cur = current.get(player.getUniqueId());
+        if (cur != null) previous.put(player.getUniqueId(), cur);
 
-          String resolvedRankId = rankId != null && !rankId.isBlank() ? rankId : "default";
-          String rankPrefix     = null;
-          String rankDisplay    = null;
+        String resolvedRankId = rankId != null && !rankId.isBlank() ? rankId : "default";
+        String rankPrefix     = null;
+        String rankDisplay    = null;
 
-          Player onlineTarget = Bukkit.getPlayerExact(disguiseName);
-          if (onlineTarget != null) {
-              resolvedRankId = rp.getPlayerPrimaryGroup(onlineTarget);
-              rankPrefix     = rp.getPlayerPrefix(onlineTarget);
-          }
+        Player onlineTarget = Bukkit.getPlayerExact(disguiseName);
+        if (onlineTarget != null) {
+            resolvedRankId = rp.getPlayerPrimaryGroup(onlineTarget);
+            rankPrefix     = rp.getPlayerPrefix(onlineTarget);
+        }
 
-          if (rankPrefix == null || rankPrefix.isBlank())
-              rankPrefix = rp.getGroupPrefix(resolvedRankId);
+        if (rankPrefix == null || rankPrefix.isBlank())
+            rankPrefix = rp.getGroupPrefix(resolvedRankId);
 
-          if (rankPrefix == null || rankPrefix.isBlank()) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(resolvedRankId)) {
-                      rankPrefix  = r.prefix();
-                      rankDisplay = r.color() + r.name();
-                      break;
-                  }
-              }
-          }
+        if (rankPrefix == null || rankPrefix.isBlank()) {
+            for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                if (r.id().equalsIgnoreCase(resolvedRankId)) {
+                    rankPrefix  = r.prefix();
+                    rankDisplay = r.color() + r.name();
+                    break;
+                }
+            }
+        }
 
-          if (rankPrefix  == null) rankPrefix  = "";
-          if (rankDisplay == null) rankDisplay = "&f" + capitalize(resolvedRankId);
+        if (rankPrefix  == null) rankPrefix  = "";
+        if (rankDisplay == null) rankDisplay = "&f" + capitalize(resolvedRankId);
 
-          current.put(player.getUniqueId(), new DisguiseData(disguiseName, resolvedRankId));
-          visualRankOnly.remove(player.getUniqueId());
-          // Solo restablecer el tiempo si es un disfraz nuevo (no re-aplicación tras respawn)
-          disguiseStart.putIfAbsent(player.getUniqueId(), System.currentTimeMillis());
+        current.put(player.getUniqueId(), new DisguiseData(disguiseName, resolvedRankId));
+        visualRankOnly.remove(player.getUniqueId());
+        // Solo restablecer el tiempo si es un disfraz nuevo (no re-aplicación tras respawn)
+        disguiseStart.put(player.getUniqueId(), System.currentTimeMillis());
 
-          String display = cfg.colorize(rankPrefix.isBlank()
-                  ? "&d" + disguiseName : rankPrefix + " &d" + disguiseName);
-          player.setDisplayName(display);
-          player.setPlayerListName(display);
-          sa.applyNameplate(player, rankPrefix);
+        String display = cfg.colorize(rankPrefix.isBlank()
+                ? "&d" + disguiseName : rankPrefix + " &d" + disguiseName);
+        player.setDisplayName(display);
+        player.setPlayerListName(display);
+        sa.applyNameplate(player, rankPrefix);
 
-          final String finalRankDisplay = rankDisplay;
-          player.sendMessage(cfg.getPrefix().append(
-                  cfg.component("&7Cargando skin de &d" + disguiseName + "&7...")));
+        final String finalRankDisplay = rankDisplay;
+        player.sendMessage(cfg.getPrefix().append(
+                cfg.component("&7Cargando skin de &d" + disguiseName + "&7...")));
 
-          plugin.getSkinFetcher().fetchSkin(disguiseName,
-                  skinData -> {
-                      if (!player.isOnline()) return;
-                      boolean ok = sa.applySkin(player, skinData);
-                      String msg = cfg.getMsgApplied()
-                              .replace("{disguise}", disguiseName)
-                              .replace("{rank}", finalRankDisplay);
-                      player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
-                      if (!ok) player.sendMessage(cfg.getPrefix().append(
-                              cfg.component("&e⚠ &7La skin no pudo aplicarse (nombre si cambiado).")));
-                  },
-                  err -> {
-                      if (!player.isOnline()) return;
-                      String msg = cfg.getMsgApplied()
-                              .replace("{disguise}", disguiseName)
-                              .replace("{rank}", finalRankDisplay);
-                      player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
-                      player.sendMessage(cfg.getPrefix().append(
-                              cfg.component("&e⚠ &7No se pudo cargar la skin: &c" + err)));
-                  });
-      }
+        plugin.getSkinFetcher().fetchSkin(disguiseName,
+                skinData -> {
+                    if (!player.isOnline()) return;
+                    boolean ok = sa.applySkin(player, skinData);
+                    String msg = cfg.getMsgApplied()
+                            .replace("{disguise}", disguiseName)
+                            .replace("{rank}", finalRankDisplay);
+                    player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                    if (!ok) player.sendMessage(cfg.getPrefix().append(
+                            cfg.component("&e⚠ &7La skin no pudo aplicarse (nombre si cambiado).")));
+                },
+                err -> {
+                    if (!player.isOnline()) return;
+                    String msg = cfg.getMsgApplied()
+                            .replace("{disguise}", disguiseName)
+                            .replace("{rank}", finalRankDisplay);
+                    player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                    player.sendMessage(cfg.getPrefix().append(
+                            cfg.component("&e⚠ &7No se pudo cargar la skin: &c" + err)));
+                });
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Solo rango visual (sin skin ni permisos)
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Solo rango visual (sin skin ni permisos)
+    // ──────────────────────────────────────────────────────────────
 
-      public void applyRankOnly(Player player, String rankId) {
-          ConfigManager cfg = plugin.getConfigManager();
-          RankProvider  rp  = plugin.getRankProvider();
-          SkinApplier   sa  = plugin.getSkinApplier();
+    public void applyRankOnly(Player player, String rankId) {
+        ConfigManager cfg = plugin.getConfigManager();
+        RankProvider  rp  = plugin.getRankProvider();
+        SkinApplier   sa  = plugin.getSkinApplier();
 
-          String rankPrefix  = rp.getGroupPrefix(rankId);
-          String rankDisplay = null;
+        String rankPrefix  = rp.getGroupPrefix(rankId);
+        String rankDisplay = null;
 
-          if (rankPrefix == null || rankPrefix.isBlank()) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(rankId)) {
-                      rankPrefix  = r.prefix();
-                      rankDisplay = r.color() + r.name();
-                      break;
-                  }
-              }
-          }
+        if (rankPrefix == null || rankPrefix.isBlank()) {
+            for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                if (r.id().equalsIgnoreCase(rankId)) {
+                    rankPrefix  = r.prefix();
+                    rankDisplay = r.color() + r.name();
+                    break;
+                }
+            }
+        }
 
-          if (rankPrefix  == null) rankPrefix  = "";
-          if (rankDisplay == null) rankDisplay = "&f" + capitalize(rankId);
+        if (rankPrefix  == null) rankPrefix  = "";
+        if (rankDisplay == null) rankDisplay = "&f" + capitalize(rankId);
 
-          DisguiseData cur = current.get(player.getUniqueId());
-          String nameToUse = (cur != null) ? cur.disguiseName() : player.getName();
+        DisguiseData cur = current.get(player.getUniqueId());
+        String nameToUse = (cur != null) ? cur.disguiseName() : player.getName();
 
-          if (cur != null) {
-              previous.put(player.getUniqueId(), cur);
-              current.put(player.getUniqueId(), new DisguiseData(cur.disguiseName(), rankId));
-          }
-          visualRankOnly.put(player.getUniqueId(), rankId);
-          disguiseStart.putIfAbsent(player.getUniqueId(), System.currentTimeMillis());
+        if (cur != null) {
+            previous.put(player.getUniqueId(), cur);
+            current.put(player.getUniqueId(), new DisguiseData(cur.disguiseName(), rankId));
+        }
+        visualRankOnly.put(player.getUniqueId(), rankId);
+        disguiseStart.put(player.getUniqueId(), System.currentTimeMillis());
 
-          String display = cfg.colorize(rankPrefix.isBlank()
-                  ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
-          player.setDisplayName(display);
-          player.setPlayerListName(display);
-          sa.applyNameplate(player, rankPrefix);
+        String display = cfg.colorize(rankPrefix.isBlank()
+                ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
+        player.setDisplayName(display);
+        player.setPlayerListName(display);
+        sa.applyNameplate(player, rankPrefix);
 
-          String msg = cfg.getMsgRankApplied().replace("{rank}", rankDisplay);
-          player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
-      }
+        String msg = cfg.getMsgRankApplied().replace("{rank}", rankDisplay);
+        player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Re-aplicar tras respawn
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Re-aplicar tras respawn
+    // ──────────────────────────────────────────────────────────────
 
-      public void reapplyAfterRespawn(Player player) {
-          ConfigManager cfg = plugin.getConfigManager();
-          RankProvider  rp  = plugin.getRankProvider();
-          SkinApplier   sa  = plugin.getSkinApplier();
+    public void reapplyAfterRespawn(Player player) {
+        ConfigManager cfg = plugin.getConfigManager();
+        RankProvider  rp  = plugin.getRankProvider();
+        SkinApplier   sa  = plugin.getSkinApplier();
 
-          DisguiseData cur      = current.get(player.getUniqueId());
-          String       rankOnly = visualRankOnly.get(player.getUniqueId());
-          if (cur == null && rankOnly == null) return;
+        DisguiseData cur      = current.get(player.getUniqueId());
+        String       rankOnly = visualRankOnly.get(player.getUniqueId());
+        if (cur == null && rankOnly == null) return;
 
-          String nameToUse = (cur != null) ? cur.disguiseName() : player.getName();
-          String rankId    = (cur != null) ? cur.rankId() : rankOnly;
+        String nameToUse = (cur != null) ? cur.disguiseName() : player.getName();
+        String rankId    = (cur != null) ? cur.rankId() : rankOnly;
 
-          String rankPrefix = rp.getGroupPrefix(rankId);
-          if (rankPrefix == null || rankPrefix.isBlank()) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(rankId)) { rankPrefix = r.prefix(); break; }
-              }
-          }
-          if (rankPrefix == null) rankPrefix = "";
+        String rankPrefix = rp.getGroupPrefix(rankId);
+        if (rankPrefix == null || rankPrefix.isBlank()) {
+            for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                if (r.id().equalsIgnoreCase(rankId)) { rankPrefix = r.prefix(); break; }
+            }
+        }
+        if (rankPrefix == null) rankPrefix = "";
 
-          String display = cfg.colorize(rankPrefix.isBlank()
-                  ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
-          player.setDisplayName(display);
-          player.setPlayerListName(display);
-          sa.applyNameplate(player, rankPrefix);
-          // El tiempo de inicio NO se reinicia (el disfraz sigue siendo el mismo)
+        String display = cfg.colorize(rankPrefix.isBlank()
+                ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
+        player.setDisplayName(display);
+        player.setPlayerListName(display);
+        sa.applyNameplate(player, rankPrefix);
+        // El tiempo de inicio NO se reinicia (el disfraz sigue siendo el mismo)
 
-          if (cur != null) {
-              final String fn = nameToUse;
-              plugin.getSkinFetcher().fetchSkin(fn,
-                      skinData -> { if (player.isOnline()) sa.applySkin(player, skinData); },
-                      err -> plugin.getLogger().warning(
-                              "[DisguiseManager] No se pudo restaurar skin tras respawn: " + err));
-          }
-      }
+        if (cur != null) {
+            final String fn = nameToUse;
+            plugin.getSkinFetcher().fetchSkin(fn,
+                    skinData -> { if (player.isOnline()) sa.applySkin(player, skinData); },
+                    err -> plugin.getLogger().warning(
+                            "[DisguiseManager] No se pudo restaurar skin tras respawn: " + err));
+        }
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Quitar disfraz (solo manual)
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Quitar disfraz (solo manual)
+    // ──────────────────────────────────────────────────────────────
 
-      public void removeDisguise(Player player) {
-          ConfigManager cfg = plugin.getConfigManager();
-          SkinApplier   sa  = plugin.getSkinApplier();
+    public void removeDisguise(Player player) {
+        ConfigManager cfg = plugin.getConfigManager();
+        SkinApplier   sa  = plugin.getSkinApplier();
 
-          boolean hasDisguise   = isDisguised(player);
-          boolean hasVisualRank = visualRankOnly.containsKey(player.getUniqueId());
+        boolean hasDisguise   = isDisguised(player);
+        boolean hasVisualRank = visualRankOnly.containsKey(player.getUniqueId());
 
-          if (!hasDisguise && !hasVisualRank) {
-              player.sendMessage(cfg.getPrefix().append(
-                      cfg.component("&7No tienes ningun disfraz activo.")));
-              return;
-          }
+        if (!hasDisguise && !hasVisualRank) {
+            player.sendMessage(cfg.getPrefix().append(
+                    cfg.component("&7No tienes ningun disfraz activo.")));
+            return;
+        }
 
-          DisguiseData cur = current.remove(player.getUniqueId());
-          if (cur != null) previous.put(player.getUniqueId(), cur);
-          visualRankOnly.remove(player.getUniqueId());
-          disguiseStart.remove(player.getUniqueId());
+        DisguiseData cur = current.remove(player.getUniqueId());
+        if (cur != null) previous.put(player.getUniqueId(), cur);
+        visualRankOnly.remove(player.getUniqueId());
+        disguiseStart.remove(player.getUniqueId());
 
-          player.setDisplayName(player.getName());
-          player.setPlayerListName(player.getName());
-          sa.removeNameplate(player);
-          if (hasDisguise) sa.removeSkin(player);
+        player.setDisplayName(player.getName());
+        player.setPlayerListName(player.getName());
+        sa.removeNameplate(player);
+        if (hasDisguise) sa.removeSkin(player);
 
-          player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
-      }
+        player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
+    }
 
-      public void cleanupOnQuit(Player player) {
-          visualRankOnly.remove(player.getUniqueId());
-          disguiseStart.remove(player.getUniqueId());
-          DisguiseData cur = current.remove(player.getUniqueId());
-          if (cur != null) previous.put(player.getUniqueId(), cur);
-          plugin.getSkinApplier().removeNameplate(player);
-          plugin.getSkinApplier().cleanupPlayer(player.getUniqueId());
-      }
+    public void cleanupOnQuit(Player player) {
+        visualRankOnly.remove(player.getUniqueId());
+        disguiseStart.remove(player.getUniqueId());
+        DisguiseData cur = current.remove(player.getUniqueId());
+        if (cur != null) previous.put(player.getUniqueId(), cur);
+        plugin.getSkinApplier().removeNameplate(player);
+        plugin.getSkinApplier().cleanupPlayer(player.getUniqueId());
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Action Bar (tick global desde ZerDisguise)
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Action Bar (tick global desde ZerDisguise)
+    // ──────────────────────────────────────────────────────────────
 
-      /**
-       * Llamado cada N ticks desde ZerDisguise. Envía la barra de acción a
-       * todos los jugadores que tengan un disfraz activo.
-       */
-      public void tickActionbar() {
-          ConfigManager cfg = plugin.getConfigManager();
-          if (!cfg.isActionbarEnabled()) return;
+    /**
+     * Llamado cada N ticks desde ZerDisguise. Envía la barra de acción a
+     * todos los jugadores que tengan un disfraz activo.
+     */
+    public void tickActionbar() {
+        ConfigManager cfg = plugin.getConfigManager();
+        if (!cfg.isActionbarEnabled()) return;
 
-          String format = cfg.getActionbarFormat();
+        String format = cfg.getActionbarFormat();
 
-          for (Player player : Bukkit.getOnlinePlayers()) {
-              DisguiseData cur      = current.get(player.getUniqueId());
-              String       rankOnly = visualRankOnly.get(player.getUniqueId());
-              if (cur == null && rankOnly == null) continue;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            DisguiseData cur      = current.get(player.getUniqueId());
+            String       rankOnly = visualRankOnly.get(player.getUniqueId());
+            if (cur == null && rankOnly == null) continue;
 
-              Long startMillis = disguiseStart.get(player.getUniqueId());
-              if (startMillis == null) continue;
+            Long startMillis = disguiseStart.get(player.getUniqueId());
+            if (startMillis == null) continue;
 
-              long elapsed = (System.currentTimeMillis() - startMillis) / 1000L;
-              long min     = elapsed / 60;
-              long sec     = elapsed % 60;
+            long elapsed = (System.currentTimeMillis() - startMillis) / 1000L;
+            long min     = elapsed / 60;
+            long sec     = elapsed % 60;
 
-              String nombre = cur != null ? cur.disguiseName() : player.getName();
-              String rankId = cur != null ? cur.rankId() : rankOnly;
-              String rango  = resolveRankPrefix(rankId);
+            String nombre = cur != null ? cur.disguiseName() : player.getName();
+            String rankId = cur != null ? cur.rankId() : rankOnly;
+            String rango  = resolveRankPrefix(rankId);
 
-              String msg = format
-                      .replace("{nombre}",     nombre)
-                      .replace("{rango}",      rango.isBlank() ? "Ninguno" : rango)
-                      .replace("{tiempo}",     String.format("%02d:%02d", min, sec))
-                      .replace("{tiempo_min}", String.valueOf(min))
-                      .replace("{tiempo_seg}", String.format("%02d", sec));
+            String msg = format
+                    .replace("{nombre}",     nombre)
+                    .replace("{rango}",      rango.isBlank() ? "Ninguno" : rango)
+                    .replace("{tiempo}",     String.format("%02d:%02d", min, sec))
+                    .replace("{tiempo_min}", String.valueOf(min))
+                    .replace("{tiempo_seg}", String.format("%02d", sec));
 
-              player.sendActionBar(cfg.component(msg));
-          }
-      }
+            player.sendActionBar(cfg.component(msg));
+        }
+    }
 
-      private String resolveRankPrefix(String rankId) {
-          if (rankId == null || rankId.isBlank()) return "";
-          ConfigManager cfg = plugin.getConfigManager();
-          RankProvider  rp  = plugin.getRankProvider();
+    private String resolveRankPrefix(String rankId) {
+        if (rankId == null || rankId.isBlank()) return "";
+        ConfigManager cfg = plugin.getConfigManager();
+        RankProvider  rp  = plugin.getRankProvider();
 
-          String prefix = rp.getGroupPrefix(rankId);
-          if (prefix == null || prefix.isBlank()) {
-              for (ConfigManager.RankEntry r : cfg.getRanks()) {
-                  if (r.id().equalsIgnoreCase(rankId)) { prefix = r.prefix(); break; }
-              }
-          }
-          // Devolver con colores para que el usuario pueda controlarlos en el format
-          return prefix != null ? prefix : capitalize(rankId);
-      }
+        String prefix = rp.getGroupPrefix(rankId);
+        if (prefix == null || prefix.isBlank()) {
+            for (ConfigManager.RankEntry r : cfg.getRanks()) {
+                if (r.id().equalsIgnoreCase(rankId)) { prefix = r.prefix(); break; }
+            }
+        }
+        // Devolver con colores para que el usuario pueda controlarlos en el format
+        return prefix != null ? prefix : capitalize(rankId);
+    }
 
-      // ──────────────────────────────────────────────────────────────
-      //  Consultas
-      // ──────────────────────────────────────────────────────────────
+    // ──────────────────────────────────────────────────────────────
+    //  Consultas
+    // ──────────────────────────────────────────────────────────────
 
-      public boolean isDisguised(Player player)   { return current.containsKey(player.getUniqueId()); }
-      public boolean hasVisualRank(Player player) { return visualRankOnly.containsKey(player.getUniqueId()); }
-      public String  getVisualRank(UUID uuid)     { return visualRankOnly.get(uuid); }
-      public DisguiseData getCurrent(UUID uuid)   { return current.get(uuid); }
-      public DisguiseData getPrevious(UUID uuid)  { return previous.get(uuid); }
-      public Long getDisguiseStart(UUID uuid)     { return disguiseStart.get(uuid); }
+    public boolean isDisguised(Player player)   { return current.containsKey(player.getUniqueId()); }
+    public boolean hasVisualRank(Player player) { return visualRankOnly.containsKey(player.getUniqueId()); }
+    public String  getVisualRank(UUID uuid)     { return visualRankOnly.get(uuid); }
+    public DisguiseData getCurrent(UUID uuid)   { return current.get(uuid); }
+    public DisguiseData getPrevious(UUID uuid)  { return previous.get(uuid); }
+    public Long getDisguiseStart(UUID uuid)     { return disguiseStart.get(uuid); }
 
-      private static String capitalize(String s) {
-          if (s == null || s.isEmpty()) return s;
-          return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
-      }
-  }
-  
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1).toLowerCase();
+    }
+}
