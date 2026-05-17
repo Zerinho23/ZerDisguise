@@ -143,7 +143,7 @@ public class SkinFetcher {
         conn.setRequestMethod("GET");
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);
-        conn.setRequestProperty("User-Agent", "ZerDisguise/2.0 (+github.com/Zerinho23/ZerDisguise)");
+        conn.setRequestProperty("User-Agent", "ZerDisguise/2.1 (+github.com/Zerinho23/ZerDisguise)");
         conn.setRequestProperty("Accept", "application/json");
 
         int code = conn.getResponseCode();

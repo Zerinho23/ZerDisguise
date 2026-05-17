@@ -393,39 +393,6 @@ public class MenuBuilder {
         return item;
     }
 
-    private ItemStack buildRankButton(RankProvider.GroupEntry group,
-                                      String disguiseName, boolean selected, int idx) {
-        ConfigManager cfg = plugin.getConfigManager();
-        MenuConfig    mc  = plugin.getMenuConfig();
-        Material[]    fallback = mc.getRankGlassFallback();
-        Material      mat = fallback[idx % fallback.length];
-        for (ConfigManager.RankEntry r : cfg.getRanks()) {
-            if (r.id().equalsIgnoreCase(group.id())) { mat = r.glass(); break; }
-        }
-
-        ItemStack item = new ItemStack(mat);
-        ItemMeta  meta = item.getItemMeta();
-        meta.displayName(ni(cfg.componentAny(group.displayPrefix() + " &7" + capitalize(group.id()))));
-
-        List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
-        if (selected) {
-            addLoreLine(lore, cfg, "&8│ &a&l✔ &aSeleccionado");
-        } else {
-            addLoreLine(lore, cfg, "&8│ &7Haz clic para elegir este rango.");
-        }
-        addLoreLine(lore, cfg, "&8└─────────────────");
-        meta.lore(lore);
-
-        var pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY_ACTION,   PersistentDataType.STRING, "select_rank");
-        pdc.set(KEY_RANK,     PersistentDataType.STRING, group.id());
-        pdc.set(KEY_DISGUISE, PersistentDataType.STRING, disguiseName);
-        if (selected) addGlow(meta);
-        item.setItemMeta(meta);
-        return item;
-    }
-
     private ItemStack buildConfirmButton(String disguiseName, MenuConfig mc) {
         ConfigManager cfg  = plugin.getConfigManager();
         RankProvider  rp   = plugin.getRankProvider();

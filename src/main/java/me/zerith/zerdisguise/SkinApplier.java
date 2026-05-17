@@ -17,13 +17,12 @@ import java.util.UUID;
  * Skin: usa la API de Paper (com.destroystokyo.paper.profile.PlayerProfile +
  *   ProfileProperty). Esto es más fiable que reflexión NMS y funciona en
  *   Paper 1.20-1.21+.
- *   - El value y signature de Mojang se usan directamente; no se necesita
- *     decodificar base64 ni extraer URL.
+ *   - El value y signature de Mojang se usan directamente.
  *   - Paper envía los paquetes PlayerInfo + respawn a todos los jugadores en línea
  *     automáticamente al llamar player.setPlayerProfile().
  *   - El perfil original se cachea para restaurarlo al quitar el disfraz.
  *
- * Nameplate: scoreboard Team de Bukkit para el prefijo sobre la cabeza.
+ * Nameplate: scoreboard Team de Bukkit para el prefijo visible sobre la cabeza.
  */
 public class SkinApplier {
 
@@ -44,7 +43,7 @@ public class SkinApplier {
 
     /**
      * Aplica la skin del {@link SkinFetcher.SkinData} al jugador.
-     * Guarda el perfil original si aún no estaba guardado.
+     * Guarda el perfil original si aún no estaba guardado (primera vez).
      *
      * @return true si la skin se aplicó correctamente.
      */
@@ -53,7 +52,7 @@ public class SkinApplier {
             // Guardar perfil original solo la primera vez (antes de cualquier disfraz)
             originals.computeIfAbsent(player.getUniqueId(), k -> player.getPlayerProfile());
 
-            // Clonar el perfil actual del jugador y reemplazar la propiedad textures
+            // Modificar la propiedad "textures" del perfil actual del jugador
             PlayerProfile profile = player.getPlayerProfile();
             profile.removeProperty(TEXTURES);
             profile.setProperty(new ProfileProperty(TEXTURES, skin.value(), skin.signature()));
@@ -71,8 +70,7 @@ public class SkinApplier {
 
     /**
      * Restaura la skin original del jugador.
-     * Si no había perfil guardado, crea un perfil limpio (el servidor recarga
-     * la skin real desde los servidores de Mojang).
+     * Si no había perfil guardado, crea uno limpio (el servidor lo recarga desde Mojang).
      */
     public void removeSkin(Player player) {
         try {
@@ -85,6 +83,14 @@ public class SkinApplier {
             plugin.getLogger().warning("[SkinApplier] Error al restaurar skin de "
                     + player.getName() + ": " + e.getMessage());
         }
+    }
+
+    /**
+     * Limpia la entrada del jugador en el caché de perfiles originales sin restaurar
+     * la skin (útil cuando el jugador se desconecta y ya no está online).
+     */
+    public void cleanupPlayer(UUID uuid) {
+        originals.remove(uuid);
     }
 
     // ──────────────────────────────────────────────────────────────

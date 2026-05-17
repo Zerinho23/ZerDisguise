@@ -50,8 +50,14 @@ public class ZerDisguise extends JavaPlugin {
         chatListener    = new ChatListener(this);
 
         DisguiseCommand cmd = new DisguiseCommand(this);
+
+        // Registro del comando principal /disguise y sus alias
         getCommand("disguise").setExecutor(cmd);
         getCommand("disguise").setTabCompleter(cmd);
+
+        // Registro del comando /undisguise como atajo independiente
+        getCommand("undisguise").setExecutor(cmd);
+        getCommand("undisguise").setTabCompleter(cmd);
 
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         getServer().getPluginManager().registerEvents(chatListener, this);
@@ -82,11 +88,11 @@ public class ZerDisguise extends JavaPlugin {
         log(P5 + "  ║                             |___/                        ║");
         log(P1 + "  ║                                                          ║");
         log(P1 + "  ╠══════════════════════════════════════════════════════════╣");
-        log(DG  + "  ║  " + GR + " Version  " + WH + BD + "ZerDisguise " + YW + "v" + v + R + DG + "                              ║");
+        log(DG  + "  ║  " + GR + " Version  " + WH + BD + "ZerDisguise " + YW + "v" + v + R + DG + "                             ║");
         log(DG  + "  ║  " + GR + " Autor    " + CY + BD + "✦ " + AUTHOR + R + DG + "                                    ║");
         log(DG  + "  ║  " + GR + " Estado   " + GN + "✔ Plugin cargado correctamente" + DG + "          ║");
         log(DG  + "  ║  " + GR + " MC       " + WH + "Paper / Spigot  1.20 - 1.21+" + DG + "           ║");
-        log(DG  + "  ║  " + GR + " Comando  " + P2 + "/disguise  /disfraz  /zd" + DG + "               ║");
+        log(DG  + "  ║  " + GR + " Comandos " + P2 + "/disguise  /undisguise  /zd" + DG + "            ║");
         log(P1  + "  ╚══════════════════════════════════════════════════════════╝");
         log("");
     }

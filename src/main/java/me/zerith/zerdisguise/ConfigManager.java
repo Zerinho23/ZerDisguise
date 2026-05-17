@@ -79,15 +79,22 @@ public class ConfigManager {
                             String prefix, String permission,
                             Material material, Material glass) {}
 
+    // ── Mensajes ──────────────────────────────────────────────────
+
     public String getMsgNoPermission()  { return plugin.getConfig().getString("messages.no-permission",   "&cNo tienes permiso para hacer eso."); }
     public String getMsgPlayerOnly()    { return plugin.getConfig().getString("messages.player-only",     "&cEste comando es solo para jugadores."); }
     public String getMsgApplied()       { return plugin.getConfig().getString("messages.disguise-applied","&7Disfraz aplicado&8: &#CC88FF{disguise} &8| &7Rango&8: &f{rank}"); }
     public String getMsgRemoved()       { return plugin.getConfig().getString("messages.disguise-removed","&aDisfraz removido correctamente."); }
+    public String getMsgDeathRemoved()  { return plugin.getConfig().getString("messages.disguise-death",  "&7Tu disfraz fue eliminado al morir."); }
     public String getMsgNotFound()      { return plugin.getConfig().getString("messages.player-not-found","&cJugador &f{player} &cno encontrado."); }
     public String getMsgWriteDisguise() { return plugin.getConfig().getString("messages.write-disguise",  "&#CC88FF&lEscribe el nombre en el chat &8(&7cancel &8= cancelar&8)"); }
     public String getMsgCancelled()     { return plugin.getConfig().getString("messages.cancelled",       "&cCancelado."); }
     public String getMsgReload()        { return plugin.getConfig().getString("messages.reload",          "&aConfiguracion recargada correctamente."); }
     public String getMsgInvalidName()   { return plugin.getConfig().getString("messages.invalid-name",    "&cNombre invalido. Solo letras, numeros y _ (max 16)."); }
+    public String getMsgBypass()        { return plugin.getConfig().getString("messages.bypass",          "&cEse jugador no puede ser disfrazado por otros."); }
+    public String getMsgNotDisguised()  { return plugin.getConfig().getString("messages.not-disguised",   "&7No tienes ningun disfraz activo."); }
+
+    // ── Colores / Components ──────────────────────────────────────
 
     public Component component(String text) {
         if (text == null) return Component.empty();

@@ -1,10 +1,11 @@
 package me.zerith.zerdisguise;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
@@ -14,7 +15,12 @@ import java.util.UUID;
 
 /**
  * Intercepta mensajes de chat para jugadores en modo "esperando nombre de disfraz".
- * También maneja la muerte del jugador (quitar disfraz) y limpieza al salir.
+ * También maneja:
+ *   - Muerte del jugador → quita disfraz automáticamente con mensaje.
+ *   - Quit del jugador  → limpia todo el estado (disfraz, caché de skin, awaiting).
+ *
+ * Usa el evento moderno de Paper (AsyncChatEvent) en lugar del deprecated
+ * AsyncPlayerChatEvent de Bukkit.
  */
 public class ChatListener implements Listener {
 
@@ -27,7 +33,7 @@ public class ChatListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onChat(AsyncPlayerChatEvent e) {
+    public void onChat(AsyncChatEvent e) {
         Player player = e.getPlayer();
         if (!awaitingInput.containsKey(player.getUniqueId())) return;
 
@@ -39,18 +45,20 @@ public class ChatListener implements Listener {
         e.setCancelled(true);
         awaitingInput.remove(player.getUniqueId());
 
-        String input = e.getMessage().trim();
+        // Obtener el texto plano del mensaje (Adventure Component → String)
+        String input = PlainTextComponentSerializer.plainText()
+                .serialize(e.message()).trim();
+
+        ConfigManager cfg = plugin.getConfigManager();
+
         if (input.equalsIgnoreCase("cancel") || input.isEmpty()) {
-            player.sendMessage(plugin.getConfigManager().getPrefix().append(
-                    plugin.getConfigManager().component(
-                            plugin.getConfigManager().getMsgCancelled())));
+            player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgCancelled())));
             return;
         }
 
         if (input.length() > 16 || !input.matches("[a-zA-Z0-9_]+")) {
-            player.sendMessage(plugin.getConfigManager().getPrefix().append(
-                    plugin.getConfigManager().component(
-                            "&cNombre inválido. Solo letras, números y _ (máx 16 caracteres).")));
+            player.sendMessage(cfg.getPrefix().append(
+                    cfg.component(cfg.getMsgInvalidName())));
             return;
         }
 
@@ -66,10 +74,27 @@ public class ChatListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        awaitingInput.remove(e.getPlayer().getUniqueId());
+        Player player = e.getPlayer();
+        awaitingInput.remove(player.getUniqueId());
+
+        // Limpiar el estado completo del jugador al desconectarse:
+        //  - Quita el registro del disfraz activo
+        //  - Libera el caché de skin original (ya no necesitamos restaurarla)
+        //  - Quita el nameplate del scoreboard
+        if (plugin.getDisguiseManager().isDisguised(player)) {
+            plugin.getDisguiseManager().cleanupOnQuit(player);
+        }
     }
 
     public void awaitInput(Player player) {
         awaitingInput.put(player.getUniqueId(), true);
+    }
+
+    public boolean isAwaiting(Player player) {
+        return awaitingInput.containsKey(player.getUniqueId());
+    }
+
+    public void cancelAwait(Player player) {
+        awaitingInput.remove(player.getUniqueId());
     }
 }

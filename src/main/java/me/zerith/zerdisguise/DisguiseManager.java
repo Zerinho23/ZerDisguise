@@ -15,6 +15,9 @@ import java.util.UUID;
  *  2. Si está offline y se proporcionó un rankId → se busca el prefijo en LuckPerms/Vault,
  *     luego en config.yml como fallback.
  *  3. Si no hay ningún rango disponible → se muestra el nombre solo, sin prefijo.
+ *
+ * El perfil de skin original siempre se guarda antes del primer disfraz y se restaura
+ * automáticamente al llamar removeDisguise() o clearOnDeath().
  */
 public class DisguiseManager {
 
@@ -52,7 +55,7 @@ public class DisguiseManager {
         Player onlineTarget = Bukkit.getPlayerExact(disguiseName);
         if (onlineTarget != null) {
             resolvedRankId = rp.getPlayerPrimaryGroup(onlineTarget);
-            rankPrefix     = rp.getPlayerPrefix(onlineTarget);  // prefijo real con colores
+            rankPrefix     = rp.getPlayerPrefix(onlineTarget);
         }
 
         // 2) Si no se obtuvo prefijo (offline o sin LP) → buscar en LuckPerms por groupId
@@ -96,16 +99,26 @@ public class DisguiseManager {
                 disguiseName,
                 skinData -> {
                     if (!player.isOnline()) return;
-                    sa.applySkin(player, skinData);
+                    boolean skinOk = sa.applySkin(player, skinData);
 
-                    String msg = cfg.getMsgApplied()
-                            .replace("{disguise}", disguiseName)
-                            .replace("{rank}",     finalRankDisplay);
-                    player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                    if (skinOk) {
+                        String msg = cfg.getMsgApplied()
+                                .replace("{disguise}", disguiseName)
+                                .replace("{rank}",     finalRankDisplay);
+                        player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                    } else {
+                        // Nombre y rango cambiados, pero la skin falló
+                        String msg = cfg.getMsgApplied()
+                                .replace("{disguise}", disguiseName)
+                                .replace("{rank}",     finalRankDisplay);
+                        player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
+                        player.sendMessage(cfg.getPrefix().append(
+                                cfg.component("&e⚠ &7La skin no pudo aplicarse (nombre sí cambiado).")));
+                    }
                 },
                 errorMsg -> {
                     if (!player.isOnline()) return;
-                    // El disfraz de nombre ya está activo — solo avisamos que la skin falló
+                    // El disfraz de nombre y rango ya está activo — avisar que la skin no cargó
                     String msg = cfg.getMsgApplied()
                             .replace("{disguise}", disguiseName)
                             .replace("{rank}",     finalRankDisplay);
@@ -116,9 +129,16 @@ public class DisguiseManager {
         );
     }
 
+    /** Quita el disfraz manualmente y restaura la apariencia original del jugador. */
     public void removeDisguise(Player player) {
         ConfigManager cfg = plugin.getConfigManager();
         SkinApplier   sa  = plugin.getSkinApplier();
+
+        if (!isDisguised(player)) {
+            player.sendMessage(cfg.getPrefix().append(
+                    cfg.component("&7No tienes ningún disfraz activo.")));
+            return;
+        }
 
         DisguiseData cur = current.remove(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
@@ -131,6 +151,10 @@ public class DisguiseManager {
         player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
     }
 
+    /**
+     * Quita el disfraz al morir. No restaura la skin (el jugador ya está muriendo/
+     * reiniciando) — solo limpia estado y nameplate. Envía mensaje informativo.
+     */
     public void clearOnDeath(Player player) {
         DisguiseData cur = current.remove(player.getUniqueId());
         if (cur == null) return;
@@ -140,6 +164,22 @@ public class DisguiseManager {
         player.setPlayerListName(player.getName());
         plugin.getSkinApplier().removeNameplate(player);
         plugin.getSkinApplier().removeSkin(player);
+
+        ConfigManager cfg2 = plugin.getConfigManager();
+        player.sendMessage(cfg2.getPrefix().append(
+                cfg2.component(cfg2.getMsgDeathRemoved())));
+    }
+
+    /**
+     * Limpia el estado del jugador al desconectarse.
+     * No intenta restaurar la skin (ya no está online) — solo libera memoria.
+     */
+    public void cleanupOnQuit(Player player) {
+        DisguiseData cur = current.remove(player.getUniqueId());
+        if (cur != null) previous.put(player.getUniqueId(), cur);
+
+        plugin.getSkinApplier().removeNameplate(player);
+        plugin.getSkinApplier().cleanupPlayer(player.getUniqueId());
     }
 
     public boolean isDisguised(Player player) {
