@@ -1,61 +1,110 @@
 package me.zerith.zerdisguise;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
-import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * Applies/removes a skin and nametag prefix to a player via:
- *  - Reflection to modify GameProfile textures (Paper 1.20-1.21+ compatible).
- *  - hide/showPlayer trick for all online players to reload the entity.
- *  - Scoreboard Team for nameplate prefix above the player's head.
+ * Aplica y restaura skins y nameplate a jugadores.
+ *
+ * Skin: usa la API de Paper (com.destroystokyo.paper.profile.PlayerProfile +
+ *   ProfileProperty). Esto es más fiable que reflexión NMS y funciona en
+ *   Paper 1.20-1.21+.
+ *   - El value y signature de Mojang se usan directamente; no se necesita
+ *     decodificar base64 ni extraer URL.
+ *   - Paper envía los paquetes PlayerInfo + respawn a todos los jugadores en línea
+ *     automáticamente al llamar player.setPlayerProfile().
+ *   - El perfil original se cachea para restaurarlo al quitar el disfraz.
+ *
+ * Nameplate: scoreboard Team de Bukkit para el prefijo sobre la cabeza.
  */
 public class SkinApplier {
 
     private static final String TEXTURES = "textures";
+
+    /** Perfiles originales antes de aplicar el disfraz (por UUID del jugador). */
+    private final Map<UUID, PlayerProfile> originals = new HashMap<>();
+
     private final ZerDisguise plugin;
 
     public SkinApplier(ZerDisguise plugin) {
         this.plugin = plugin;
     }
 
+    // ──────────────────────────────────────────────────────────────
+    //  Skin
+    // ──────────────────────────────────────────────────────────────
+
+    /**
+     * Aplica la skin del {@link SkinFetcher.SkinData} al jugador.
+     * Guarda el perfil original si aún no estaba guardado.
+     *
+     * @return true si la skin se aplicó correctamente.
+     */
     public boolean applySkin(Player player, SkinFetcher.SkinData skin) {
         try {
-            patchGameProfile(player, skin.value(), skin.signature());
-            refreshForAll(player);
+            // Guardar perfil original solo la primera vez (antes de cualquier disfraz)
+            originals.computeIfAbsent(player.getUniqueId(), k -> player.getPlayerProfile());
+
+            // Clonar el perfil actual del jugador y reemplazar la propiedad textures
+            PlayerProfile profile = player.getPlayerProfile();
+            profile.removeProperty(TEXTURES);
+            profile.setProperty(new ProfileProperty(TEXTURES, skin.value(), skin.signature()));
+
+            // Paper envía los paquetes necesarios a todos los jugadores automáticamente
+            player.setPlayerProfile(profile);
             return true;
+
         } catch (Exception e) {
-            plugin.getLogger().warning("[SkinApplier] No se pudo aplicar skin a "
+            plugin.getLogger().warning("[SkinApplier] Error al aplicar skin a "
                     + player.getName() + ": " + e.getMessage());
             return false;
         }
     }
 
+    /**
+     * Restaura la skin original del jugador.
+     * Si no había perfil guardado, crea un perfil limpio (el servidor recarga
+     * la skin real desde los servidores de Mojang).
+     */
     public void removeSkin(Player player) {
         try {
-            clearTexturesProperty(player);
-            refreshForAll(player);
+            PlayerProfile original = originals.remove(player.getUniqueId());
+            if (original == null) {
+                original = Bukkit.createProfile(player.getUniqueId(), player.getName());
+            }
+            player.setPlayerProfile(original);
         } catch (Exception e) {
-            plugin.getLogger().warning("[SkinApplier] No se pudo restaurar skin: " + e.getMessage());
+            plugin.getLogger().warning("[SkinApplier] Error al restaurar skin de "
+                    + player.getName() + ": " + e.getMessage());
         }
     }
 
+    // ──────────────────────────────────────────────────────────────
+    //  Nameplate (prefijo visible sobre la cabeza)
+    // ──────────────────────────────────────────────────────────────
+
     public void applyNameplate(Player player, String rankPrefix) {
-        Scoreboard board   = Bukkit.getScoreboardManager().getMainScoreboard();
+        Scoreboard board    = Bukkit.getScoreboardManager().getMainScoreboard();
         String     teamName = safeTeamName(player);
 
         Team team = board.getTeam(teamName);
         if (team == null) team = board.registerNewTeam(teamName);
 
-        ConfigManager cfg = plugin.getConfigManager();
-        String prefix = rankPrefix == null || rankPrefix.isBlank() ? "" : rankPrefix + " ";
+        ConfigManager cfg    = plugin.getConfigManager();
+        String        prefix = (rankPrefix == null || rankPrefix.isBlank()) ? "" : rankPrefix + " ";
+
         team.prefix(cfg.component(prefix));
         team.suffix(cfg.component(""));
         team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.ALWAYS);
-        team.setOption(Team.Option.COLLISION_RULE, Team.OptionStatus.ALWAYS);
+        team.setOption(Team.Option.COLLISION_RULE,      Team.OptionStatus.ALWAYS);
 
         if (!team.hasEntry(player.getName())) {
             team.addEntry(player.getName());
@@ -64,72 +113,13 @@ public class SkinApplier {
 
     public void removeNameplate(Player player) {
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        Team team = board.getTeam(safeTeamName(player));
+        Team       team  = board.getTeam(safeTeamName(player));
         if (team != null) team.unregister();
     }
 
-    private void patchGameProfile(Player player, String value, String signature) throws Exception {
-        Object gameProfile = getGameProfile(player);
-        Object propMap     = invoke(gameProfile, "getProperties");
-        callByName(propMap, "removeAll", TEXTURES);
-        Object newProp = buildProperty(value, signature);
-        callByName(propMap, "put", TEXTURES, newProp);
-    }
-
-    private void clearTexturesProperty(Player player) throws Exception {
-        Object gameProfile = getGameProfile(player);
-        Object propMap     = invoke(gameProfile, "getProperties");
-        callByName(propMap, "removeAll", TEXTURES);
-    }
-
-    private Object getGameProfile(Player player) throws Exception {
-        Object handle = invoke(player, "getHandle");
-        for (Method m : handle.getClass().getMethods()) {
-            if (m.getParameterCount() == 0
-                    && m.getReturnType().getSimpleName().equals("GameProfile")) {
-                return m.invoke(handle);
-            }
-        }
-        throw new Exception("getGameProfile() no encontrado en ServerPlayer");
-    }
-
-    private static Object buildProperty(String value, String signature) throws Exception {
-        Class<?> cls = Class.forName("com.mojang.authlib.properties.Property");
-        try {
-            return cls.getConstructor(String.class, String.class, String.class)
-                    .newInstance(TEXTURES, value, signature);
-        } catch (NoSuchMethodException e) {
-            return cls.getConstructor(String.class, String.class)
-                    .newInstance(TEXTURES, value);
-        }
-    }
-
-    private static Object invoke(Object target, String methodName) throws Exception {
-        for (Method m : target.getClass().getMethods()) {
-            if (m.getName().equals(methodName) && m.getParameterCount() == 0) {
-                return m.invoke(target);
-            }
-        }
-        throw new Exception("Metodo '" + methodName + "' no encontrado en "
-                + target.getClass().getSimpleName());
-    }
-
-    private static void callByName(Object target, String methodName, Object... args) throws Exception {
-        for (Method m : target.getClass().getMethods()) {
-            if (m.getName().equals(methodName) && m.getParameterCount() == args.length) {
-                m.invoke(target, args);
-                return;
-            }
-        }
-    }
-
-    private void refreshForAll(Player player) {
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            if (online.equals(player)) continue;
-            online.hidePlayer(plugin, player);
-            online.showPlayer(plugin, player);
-        }
-    }
+    // ──────────────────────────────────────────────────────────────
+    //  Helpers
+    // ──────────────────────────────────────────────────────────────
 
     private static String safeTeamName(Player player) {
         String name = "zd_" + player.getName();
