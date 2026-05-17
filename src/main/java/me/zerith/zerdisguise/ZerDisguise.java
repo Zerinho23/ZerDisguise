@@ -2,6 +2,7 @@ package me.zerith.zerdisguise;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public class ZerDisguise extends JavaPlugin {
 
@@ -29,6 +30,7 @@ public class ZerDisguise extends JavaPlugin {
     private SkinFetcher     skinFetcher;
     private SkinApplier     skinApplier;
     private ChatListener    chatListener;
+    private BukkitTask      actionbarTask;
 
     @Override
     public void onEnable() {
@@ -69,10 +71,8 @@ public class ZerDisguise extends JavaPlugin {
             getLogger().info(GN + "PlaceholderAPI expansion registrada." + R);
         }
 
-        // Tarea global de la barra de acción
-        int abInterval = configManager.getActionbarInterval();
-        Bukkit.getScheduler().runTaskTimer(this, () -> disguiseManager.tickActionbar(),
-                abInterval, abInterval);
+        // Tarea global de la barra de acción (guardamos referencia para poder reiniciarla en /reload)
+        scheduleActionbarTask();
 
         printBanner();
     }
@@ -85,7 +85,16 @@ public class ZerDisguise extends JavaPlugin {
     public void reload() {
         configManager.loadConfig();
         menuConfig.load();
+        // Reiniciar la tarea para que el nuevo interval sea efectivo
+        if (actionbarTask != null) actionbarTask.cancel();
+        scheduleActionbarTask();
         getLogger().info(GN + "Configuracion recargada correctamente." + R);
+    }
+
+    private void scheduleActionbarTask() {
+        int interval = configManager.getActionbarInterval();
+        actionbarTask = Bukkit.getScheduler().runTaskTimer(
+                this, () -> disguiseManager.tickActionbar(), interval, interval);
     }
 
     private void printBanner() {
