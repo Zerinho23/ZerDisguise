@@ -5,7 +5,7 @@
 **Plugin de disfraces con GUI interactiva para servidores de Minecraft**
 Desarrollado por **zerinho23**
 
-[![Versión](https://img.shields.io/badge/versión-2.1.0-purple?style=for-the-badge)](https://github.com/Zerinho23/ZerDisguise/releases/latest)
+[![Versión](https://img.shields.io/badge/versión-2.2.1-purple?style=for-the-badge)](https://github.com/Zerinho23/ZerDisguise/releases/latest)
 [![Paper](https://img.shields.io/badge/Paper-1.20--1.21+-blue?style=for-the-badge)](https://papermc.io)
 [![Java](https://img.shields.io/badge/Java-17+-orange?style=for-the-badge)](https://adoptium.net)
 
@@ -137,6 +137,15 @@ Hex RGB:      &#FF00FF   &#00AAFF   &#FF6600
 ---
 
 ## 📋 Changelog
+
+### v2.2.1
+- **Corrección de bug crítico**: los botones del menú dejaban de funcionar al editar `titles.main` o `titles.confirm` en `menu.yml`
+- El `MenuListener` ahora identifica los inventarios del plugin mediante un `ZerInventoryHolder` personalizado en lugar de comparar strings del título hardcodeados — el menú es completamente editable sin romper la lógica
+- Nuevo archivo `ZerInventoryHolder.java` con enum `MenuType` (MAIN / CONFIRM) para identificar el tipo de menú activo
+
+### v2.2.0
+- Refactorización del menú de confirmación (estilo v2.2 rediseñado)
+- Soporte mejorado de caché de skins para jugadores offline en la vista previa
 
 ### v2.1.0
 - **Corrección crítica**: skin ahora se aplica correctamente usando la API nativa de Paper (`PlayerProfile` + `ProfileProperty`) en lugar de reflexión NMS frágil que fallaba silenciosamente en 1.20.4+
