@@ -66,3 +66,4 @@ messages:
   cancelled:         "&cCancelado."
   reload:            "&aConfiguracion recargada correctamente."
   invalid-name:      "&cNombre invalido. Solo letras, numeros y _ &8(max 16 caracteres)."
+    rank-applied:      "&7Rango visual aplicado&8: &f{rank}"
