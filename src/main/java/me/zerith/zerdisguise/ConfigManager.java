@@ -95,31 +95,31 @@ public class ConfigManager {
     public String getMsgNotDisguised()  { return plugin.getConfig().getString("messages.not-disguised",   "&7No tienes ningun disfraz activo."); }
     public String getMsgRankApplied()    { return plugin.getConfig().getString("messages.rank-applied",     "&7Rango visual aplicado&8: &f{rank}"); }
 
-      // ── Action Bar ─────────────────────────────────────────────
+    // ── Action Bar ─────────────────────────────────────────────
 
-      /** ¿Mostrar barra de acción mientras el jugador está disfrazado? */
-      public boolean isActionbarEnabled() {
-          return plugin.getConfig().getBoolean("actionbar.enabled", true);
-      }
+    /** ¿Mostrar barra de acción mientras el jugador está disfrazado? */
+    public boolean isActionbarEnabled() {
+        return plugin.getConfig().getBoolean("actionbar.enabled", true);
+    }
 
-      /**
-       * Intervalo de refresco en ticks (20 = 1 segundo).
-       * Leído una sola vez al iniciar el plugin — cambios requieren /zd reload + reinicio de tarea.
-       */
-      public int getActionbarInterval() {
-          int v = plugin.getConfig().getInt("actionbar.interval", 20);
-          return Math.max(1, v);
-      }
+    /**
+     * Intervalo de refresco en ticks (20 = 1 segundo).
+     * Leído una sola vez al iniciar el plugin — cambios requieren /zd reload + reinicio de tarea.
+     */
+    public int getActionbarInterval() {
+        int v = plugin.getConfig().getInt("actionbar.interval", 20);
+        return Math.max(1, v);
+    }
 
-      /**
-       * Formato del mensaje de la barra de acción.
-       * Placeholders: {nombre} {rango} {tiempo} {tiempo_min} {tiempo_seg}
-       */
-      public String getActionbarFormat() {
-          return plugin.getConfig().getString(
-                  "actionbar.format",
-                  "&8[&d&l\u2697&8] &7Disfrazado como&8: &d{nombre} &8| &7Rango&8: {rango} &8| &7Tiempo&8: &a{tiempo}");
-      }
+    /**
+     * Formato del mensaje de la barra de acción.
+     * Placeholders: {nombre} {rango} {tiempo} {tiempo_min} {tiempo_seg}
+     */
+    public String getActionbarFormat() {
+        return plugin.getConfig().getString(
+            "actionbar.format",
+            "&8[&d&l\u2697&8] &7Disfrazado como&8: &d{nombre} &8| &7Rango&8: {rango} &8| &7Tiempo&8: &a{tiempo}");
+    }
 
     // ── Colores / Components ──────────────────────────────────────
 
