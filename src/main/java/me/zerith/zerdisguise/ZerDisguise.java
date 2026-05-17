@@ -1,5 +1,6 @@
 package me.zerith.zerdisguise;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class ZerDisguise extends JavaPlugin {
@@ -61,6 +62,17 @@ public class ZerDisguise extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new MenuListener(this), this);
         getServer().getPluginManager().registerEvents(chatListener, this);
+
+        // Registrar expansión de PlaceholderAPI si está presente
+        if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            new PapiExpansion(this).register();
+            getLogger().info(GN + "PlaceholderAPI expansion registrada." + R);
+        }
+
+        // Tarea global de la barra de acción
+        int abInterval = configManager.getActionbarInterval();
+        Bukkit.getScheduler().runTaskTimer(this, () -> disguiseManager.tickActionbar(),
+                abInterval, abInterval);
 
         printBanner();
     }
