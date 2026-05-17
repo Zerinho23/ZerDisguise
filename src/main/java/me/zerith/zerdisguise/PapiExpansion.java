@@ -103,7 +103,7 @@ package me.zerith.zerdisguise;
 
               case "time_seg" -> {
                   Long start = dm.getDisguiseStart(player.getUniqueId());
-                  if (start == null) yield "0";
+                  if (start == null) yield "00";
                   yield String.format("%02d", (System.currentTimeMillis() - start) / 1000L % 60);
               }
 
