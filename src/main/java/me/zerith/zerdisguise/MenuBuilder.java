@@ -74,8 +74,10 @@ public class MenuBuilder {
         ConfigManager cfg = plugin.getConfigManager();
         MenuConfig    mc  = plugin.getMenuConfig();
 
-        Inventory inv = Bukkit.createInventory(null, 54,
+        ZerInventoryHolder holder = new ZerInventoryHolder(ZerInventoryHolder.MenuType.MAIN);
+        Inventory inv = Bukkit.createInventory(holder, 54,
                 cfg.component(mc.getMainTitle()));
+        holder.setInventory(inv);
 
         ItemStack border  = glass(mc.getBorderMaterial(),  "");
         ItemStack filler  = glass(mc.getFillerMaterial(),  "");
@@ -174,8 +176,10 @@ public class MenuBuilder {
         MenuConfig    mc  = plugin.getMenuConfig();
         RankProvider  rp  = plugin.getRankProvider();
 
-        Inventory inv = Bukkit.createInventory(null, 54,
+        ZerInventoryHolder holder = new ZerInventoryHolder(ZerInventoryHolder.MenuType.CONFIRM);
+        Inventory inv = Bukkit.createInventory(holder, 54,
                 cfg.component(mc.getConfirmTitle()));
+        holder.setInventory(inv);
 
         ItemStack border  = glass(mc.getBorderMaterial(),  "");
         ItemStack corner  = glass(mc.getCornerMaterial(),  "");
