@@ -297,21 +297,23 @@ public class MenuBuilder {
           inv.setItem(7, accent);
           inv.setItem(8, corner);
 
-          // ── Fila 1: relleno + etiqueta central ───────────────────
-          for (int i = 9; i <= 17; i++) inv.setItem(i, filler);
-          inv.setItem(13, buildLabel(
-                  Material.CHEST,
-                  "&#CC88FF&l\u2726 Selector de Rango Visual",
-                  List.of(
-                      "&8\u25B8 &7Elige un rango para cambiar",
-                      "&8  &7solo tu prefijo visible.",
-                      "",
-                      "&8\u25B8 &o&7Sin permisos reales.",
-                      "&8\u25B8 &7Usa &c\u2716 Quitar disfraz &7para restaurar."
-                  )
-          ));
+          // ── Fila 1: relleno + etiqueta central (configurable desde menu.yml) ────
+            for (int i = 9; i <= 17; i++) inv.setItem(i, filler);
+            List<String> rlLore = mc.getRankMenuLabelLore();
+            inv.setItem(mc.getRankMenuLabelSlot(), buildLabel(
+                    mc.getRankMenuLabelMaterial(),
+                    mc.getRankMenuLabelName(),
+                    rlLore.isEmpty()
+                            ? List.of(
+                                "&8\u25B8 &7Elige un rango para cambiar",
+                                "&8  &7solo tu prefijo visible.",
+                                "",
+                                "&8\u25B8 &o&7Sin permisos reales.",
+                                "&8\u25B8 &7Usa &c\u2716 Quitar disfraz &7para restaurar.")
+                            : rlLore
+            ));
 
-          // ── Fila 2: divisor ───────────────────────────────────────
+            // ── Fila 2: divisor ───────────────────────────────────────
           for (int i = 18; i < 27; i++) inv.setItem(i, divider);
 
           // ── Filas 3-4: ítems de rango ─────────────────────────────
