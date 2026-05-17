@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -17,12 +18,17 @@ public class MenuListener implements Listener {
         this.plugin = plugin;
     }
 
+    /** Devuelve el ZerInventoryHolder si el inventario es del plugin, o null. */
+    private ZerInventoryHolder getHolder(org.bukkit.inventory.InventoryView view) {
+        InventoryHolder holder = view.getTopInventory().getHolder();
+        if (holder instanceof ZerInventoryHolder zh) return zh;
+        return null;
+    }
+
     @EventHandler
     public void onInventoryDrag(InventoryDragEvent e) {
         if (!(e.getWhoClicked() instanceof Player)) return;
-        String title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().serialize(e.getView().title());
-        if (title.contains("ZerDisguise") || title.contains("Confirmar disfraz")) {
+        if (getHolder(e.getView()) != null) {
             e.setCancelled(true);
         }
     }
@@ -31,12 +37,8 @@ public class MenuListener implements Listener {
     public void onInventoryClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player player)) return;
 
-        String title = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
-                .legacySection().serialize(e.getView().title());
-
-        boolean isMain    = title.contains("ZerDisguise");
-        boolean isConfirm = title.contains("Confirmar disfraz");
-        if (!isMain && !isConfirm) return;
+        ZerInventoryHolder holder = getHolder(e.getView());
+        if (holder == null) return;
 
         e.setCancelled(true);
 
@@ -76,12 +78,9 @@ public class MenuListener implements Listener {
             }
 
             // ── Menú principal: clic en cabeza de jugador online ──────────────
-            // Aplica disfraz inmediatamente con nombre + skin + rango real de LP
             case "instant_disguise" -> {
                 if (target.isBlank() || player.getName().equalsIgnoreCase(target)) return;
                 player.closeInventory();
-                // rankId ya contiene el primaryGroup del objetivo; DisguiseManager
-                // resolverá el prefijo real desde LuckPerms/Vault automáticamente.
                 plugin.getDisguiseManager().applyDisguise(player, target,
                         rankId.isBlank() ? "default" : rankId);
             }
@@ -90,9 +89,6 @@ public class MenuListener implements Listener {
             case "confirm" -> {
                 if (disguise.isBlank()) return;
                 player.closeInventory();
-                // El rango se detecta automáticamente en applyDisguise:
-                //  - Si el objetivo está online → rango real de LP
-                //  - Si está offline → "default"
                 plugin.getDisguiseManager().applyDisguise(player, disguise, "");
             }
 
