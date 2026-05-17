@@ -98,7 +98,7 @@ package me.zerith.zerdisguise;
 
           if (!dm.isDisguised(player) && !dm.hasVisualRank(player)) return;
 
-          // Esperar 1 tick para que el cliente este listo
+          // Esperar 2 ticks para que el cliente este completamente listo
           plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
               if (player.isOnline()) {
                   dm.reapplyAfterRespawn(player);
@@ -113,8 +113,8 @@ package me.zerith.zerdisguise;
           plugin.getDisguiseManager().cleanupOnQuit(player);
       }
 
-      public void awaitInput(Player player)  { awaitingInput.put(player.getUniqueId(), true); }
+      public void awaitInput(Player player)    { awaitingInput.put(player.getUniqueId(), true); }
       public boolean isAwaiting(Player player) { return awaitingInput.containsKey(player.getUniqueId()); }
-      public void cancelAwait(Player player) { awaitingInput.remove(player.getUniqueId()); }
+      public void cancelAwait(Player player)   { awaitingInput.remove(player.getUniqueId()); }
   }
   
