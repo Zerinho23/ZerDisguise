@@ -324,12 +324,12 @@ public class MenuBuilder {
 
           int slot = 27;
           for (int i = start; i < Math.min(start + PLAYERS_PER_PAGE, total); i++) {
-              inv.setItem(slot++, buildRankItem(groups.get(i), i, glassFallback, cfg));
+              inv.setItem(slot++, buildRankItem(groups.get(i), i, glassFallback, cfg, mc));
           }
           while (slot <= 44) inv.setItem(slot++, filler);
 
           // ── Fila 5: navegación ────────────────────────────────────
-          inv.setItem(45, buildBackToMainButton(mc));
+          inv.setItem(mc.getRankMenuBackSlot(), buildBackToMainButton(mc));
           inv.setItem(46, border);
           inv.setItem(47, border);
           inv.setItem(48, border);
@@ -801,7 +801,8 @@ public class MenuBuilder {
       }
 
       private ItemStack buildRankItem(RankProvider.GroupEntry group, int index,
-                                      Material[] glassFallback, ConfigManager cfg) {
+                                      Material[] glassFallback, ConfigManager cfg,
+                                      MenuConfig mc) {
           Material mat = glassFallback[index % glassFallback.length];
 
           for (ConfigManager.RankEntry r : cfg.getRanks()) {
@@ -815,13 +816,18 @@ public class MenuBuilder {
           ItemMeta  meta = item.getItemMeta();
           meta.displayName(ni(cfg.componentAny(group.displayPrefix())));
 
+          List<String>    itemLoreCfg = mc.getRankMenuItemLore();
           List<Component> lore = new ArrayList<>();
           addLoreLine(lore, cfg, "&8ID&8: &7" + group.id());
-          addLoreLine(lore, cfg, "");
-          addLoreLine(lore, cfg, "&8\u25B8 &7Solo cambia el prefijo visible.");
-          addLoreLine(lore, cfg, "&8\u25B8 &o&7Sin permisos reales.");
-          addLoreLine(lore, cfg, "");
-          addLoreLine(lore, cfg, "&#FFDD00&l\u00BB &eClic para aplicar");
+          if (itemLoreCfg.isEmpty()) {
+              addLoreLine(lore, cfg, "");
+              addLoreLine(lore, cfg, "&8▸ &7Solo cambia el prefijo visible.");
+              addLoreLine(lore, cfg, "&8▸ &o&7Sin permisos reales.");
+              addLoreLine(lore, cfg, "");
+              addLoreLine(lore, cfg, "&#FFDD00&l» &eClic para aplicar");
+          } else {
+              for (String line : itemLoreCfg) lore.add(ni(cfg.component(line)));
+          }
           meta.lore(lore);
 
           var pdc = meta.getPersistentDataContainer();
@@ -833,14 +839,19 @@ public class MenuBuilder {
 
       private ItemStack buildBackToMainButton(MenuConfig mc) {
           ConfigManager cfg  = plugin.getConfigManager();
-          ItemStack     item = new ItemStack(mc.getBackMaterial());
+          ItemStack     item = new ItemStack(mc.getRankMenuBackMaterial());
           ItemMeta      meta = item.getItemMeta();
-          meta.displayName(ni(cfg.component("&c&l\u25C4 Volver al menu")));
+          meta.displayName(ni(cfg.component(mc.getRankMenuBackName())));
 
-          List<Component> lore = new ArrayList<>();
-          addLoreLine(lore, cfg, "&7Regresa al menu principal.");
-          addLoreLine(lore, cfg, "");
-          addLoreLine(lore, cfg, "&c&l\u00BB &cClic para volver");
+          List<String>    loreCfg = mc.getRankMenuBackLore();
+          List<Component> lore    = new ArrayList<>();
+          if (loreCfg.isEmpty()) {
+              addLoreLine(lore, cfg, "&7Regresa al menu principal.");
+              addLoreLine(lore, cfg, "");
+              addLoreLine(lore, cfg, "&c&l» &cClic para volver");
+          } else {
+              for (String line : loreCfg) lore.add(ni(cfg.component(line)));
+          }
           meta.lore(lore);
 
           var pdc = meta.getPersistentDataContainer();
