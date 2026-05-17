@@ -97,11 +97,9 @@ public class MenuBuilder {
 
         // ── Fila 1: cabeza del jugador + botones ──────────────────
         inv.setItem(9, buildPlayerInfoHead(player));
-        inv.setItem(10, filler);
-          inv.setItem(mc.getRankSelectorSlot(), buildRankSelectorButton(player, mc));
-          inv.setItem(12, filler);
+        for (int i = 10; i <= 16; i++) inv.setItem(i, filler); // relleno completo; botones se ponen encima
+        inv.setItem(mc.getRankSelectorSlot(), buildRankSelectorButton(player, mc));
         inv.setItem(mc.getWriteSlot(), buildWriteButton(mc));
-        for (int i = 14; i <= 16; i++) inv.setItem(i, filler);
         inv.setItem(mc.getRemoveSlot(),
                 plugin.getDisguiseManager().isDisguised(player)
                         ? buildRemoveButton(player, mc)
