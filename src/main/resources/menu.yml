@@ -18,7 +18,8 @@
 # ── Títulos ──────────────────────────────────────────────────────
 titles:
   main:    "&8» &#CC88FFZerDisguise &8«"
-  confirm: "&8» &#CC88FF&lConfirmar disfraz &8«"
+  confirm:   "&8» &#CC88FF&lConfirmar disfraz &8«"
+    rank-menu: "&8» &#CC88FF&lSeleccionar Rango &8«"
 
 # ── Materiales del diseño del marco ──────────────────────────────
 # border  → bordes superior e inferior (arriba y abajo)
@@ -67,7 +68,20 @@ buttons:
       - "&8  &7ponerte su nombre y skin."
       - "&8▸ &7Se aplica instantáneamente."
 
-  # Botón página anterior (slot 46)
+  # Botón selector de rango visual (slot 11 por defecto)
+    rank-selector:
+      material: BOOKSHELF
+      slot: 11
+      name: "&#CC88FF&l✦ Seleccionar rango"
+      lore:
+        - "&7Elige un rango para cambiar solo"
+        - "&7tu prefijo visible."
+        - ""
+        - "&8Nota&8: &o&7sin permisos reales."
+        - ""
+        - "&#FFDD00&l» &eHaz clic para abrir"
+
+    # Botón página anterior (slot 46)
   prev-page:
     material: SPECTRAL_ARROW
     slot: 46
