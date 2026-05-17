@@ -92,7 +92,7 @@ public class ZerDisguise extends JavaPlugin {
         log(DG  + "  ║  " + GR + " Autor    " + CY + BD + "✦ " + AUTHOR + R + DG + "                                    ║");
         log(DG  + "  ║  " + GR + " Estado   " + GN + "✔ Plugin cargado correctamente" + DG + "          ║");
         log(DG  + "  ║  " + GR + " MC       " + WH + "Paper / Spigot  1.20 - 1.21+" + DG + "           ║");
-        log(DG  + "  ║  " + GR + " Comandos " + P2 + "/disguise  /undisguise  /zd" + DG + "            ║");
+        log(DG  + "  ║  " + GR + " Comandos " + P2 + "/disguise  /undisguise  /zd" + DG + "           ║");
         log(P1  + "  ╚══════════════════════════════════════════════════════════╝");
         log("");
     }

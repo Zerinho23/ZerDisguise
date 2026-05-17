@@ -120,6 +120,13 @@ public class SkinFetcher {
         });
     }
 
+    /** Retorna la SkinData del caché si existe, o null si no está cacheada. Llamado desde hilo principal. */
+    public SkinData getCached(String playerName) {
+        synchronized (cache) {
+            return cache.get(playerName.toLowerCase());
+        }
+    }
+
     public void invalidateCache(String playerName) {
         synchronized (cache) {
             cache.remove(playerName.toLowerCase());

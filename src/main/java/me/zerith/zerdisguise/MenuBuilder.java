@@ -1,5 +1,7 @@
 package me.zerith.zerdisguise;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
@@ -14,25 +16,27 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Construye los menús de ZerDisguise.
- * Todos los materiales, títulos y textos de botones se leen desde menu.yml via MenuConfig.
  *
- * Menú principal (54 slots):
- *   Fila 0  → borde superior (esquinas del color corner)
- *   Fila 1  → [Info jugador][relleno][Escribir][relleno][Quitar]
+ * MENÚ PRINCIPAL (54 slots):
+ *   Fila 0  → borde (corner en 0 y 8)
+ *   Fila 1  → [Cabeza jugador:9] [relleno] [✦ Escribir:13] [relleno] [✖ Quitar:17]
  *   Fila 2  → divisor + etiqueta central
  *   Filas 3-4 → cabezas de jugadores online (18 por página)
- *   Fila 5  → borde + [Anterior][relleno][Página info][relleno][Siguiente]
+ *   Fila 5  → borde + [◄ Prev:46] [Página:49] [Sig ►:52]
  *
- * Menú de confirmación (54 slots):
- *   Fila 0  → borde + cabeza preview (slot 4)
- *   Filas 1-2 → selector de rangos
+ * MENÚ DE CONFIRMACIÓN (54 slots):
+ *   Fila 0  → borde completo
+ *   Fila 1  → filler + [SKULL CON SKIN:13] + filler
+ *   Fila 2  → divisor con [★ Info:22] al centro
  *   Filas 3-4 → relleno
- *   Fila 5  → borde + [Cambiar nombre][relleno][Confirmar][relleno][Volver]
+ *   Fila 5  → borde + [✎ Nombre:46] + [✔ Confirmar:49] + [◄ Volver:52]
  */
 public class MenuBuilder {
 
@@ -77,13 +81,17 @@ public class MenuBuilder {
         ItemStack filler  = glass(mc.getFillerMaterial(),  "");
         ItemStack divider = glass(mc.getDividerMaterial(), "");
         ItemStack corner  = glass(mc.getCornerMaterial(),  "");
+        // Acento extra para el borde superior (ligeramente diferente)
+        ItemStack accent  = glass(Material.LIGHT_BLUE_STAINED_GLASS_PANE, "");
 
-        // ── Fila 0: borde superior ────────────────────────────────
+        // ── Fila 0: borde superior con degradado ──────────────────
         inv.setItem(0, corner);
-        for (int i = 1; i <= 7; i++) inv.setItem(i, border);
+        inv.setItem(1, accent);
+        for (int i = 2; i <= 6; i++) inv.setItem(i, border);
+        inv.setItem(7, accent);
         inv.setItem(8, corner);
 
-        // ── Fila 1: cabeza del jugador, botones ──────────────────
+        // ── Fila 1: cabeza del jugador + botones ──────────────────
         inv.setItem(9, buildPlayerInfoHead(player));
         for (int i = 10; i <= 12; i++) inv.setItem(i, filler);
         inv.setItem(mc.getWriteSlot(), buildWriteButton(mc));
@@ -91,22 +99,23 @@ public class MenuBuilder {
         inv.setItem(mc.getRemoveSlot(),
                 plugin.getDisguiseManager().isDisguised(player)
                         ? buildRemoveButton(player, mc)
-                        : glass(mc.getBorderMaterial(), ""));
+                        : glass(mc.getFillerMaterial(), ""));
 
-        // ── Fila 2: divisor + etiqueta central ───────────────────
+        // ── Fila 2: divisor completo + etiqueta ───────────────────
         for (int i = 18; i < 27; i++) inv.setItem(i, divider);
         inv.setItem(mc.getLabelSlot(), buildLabel(
                 mc.getLabelMaterial(),
                 mc.getLabelName(),
                 mc.getLabelLore().isEmpty()
                         ? List.of(
-                            "&8▸ &7Haz clic en una cabeza para",
-                            "&8  &7ponerte su nombre y skin.",
-                            "&8▸ &7Se aplica instantáneamente.")
+                            "&#CC88FF▸ &7Clic en una cabeza para disfrazarte",
+                            "&8  &7instantáneamente con su skin y rango real.",
+                            "",
+                            "&8▸ &7O usa &e✦ Escribir nombre &7para cualquier jugador.")
                         : mc.getLabelLore()
         ));
 
-        // ── Filas 3-4: cabezas de jugadores online ───────────────
+        // ── Filas 3-4: cabezas de jugadores online ────────────────
         List<Player> online    = new ArrayList<>(Bukkit.getOnlinePlayers());
         int total      = online.size();
         int totalPages = Math.max(1, (int) Math.ceil(total / (double) PLAYERS_PER_PAGE));
@@ -119,9 +128,15 @@ public class MenuBuilder {
         }
         while (slot <= 44) inv.setItem(slot++, filler);
 
-        // ── Fila 5: navegación ────────────────────────────────────
+        // ── Fila 5: borde inferior + navegación ───────────────────
         inv.setItem(45, corner);
-        for (int i = 46; i <= 53; i++) inv.setItem(i, border);
+        inv.setItem(46, border);
+        inv.setItem(47, border);
+        inv.setItem(48, border);
+        inv.setItem(49, border); // central
+        inv.setItem(50, border);
+        inv.setItem(51, border);
+        inv.setItem(52, border);
         inv.setItem(53, corner);
 
         if (safePage > 0) {
@@ -151,14 +166,9 @@ public class MenuBuilder {
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  MENÚ DE CONFIRMACIÓN
+    //  MENÚ DE CONFIRMACIÓN — rediseñado v2.2
     // ─────────────────────────────────────────────────────────────
 
-    /**
-     * Menú de confirmación simplificado: solo muestra la cabeza del objetivo,
-     * info del disfraz y botones Confirmar / Cambiar nombre / Volver.
-     * El rango se resuelve automáticamente en DisguiseManager al aplicar.
-     */
     public Inventory buildConfirmMenu(Player player, String disguiseName) {
         ConfigManager cfg = plugin.getConfigManager();
         MenuConfig    mc  = plugin.getMenuConfig();
@@ -171,47 +181,77 @@ public class MenuBuilder {
         ItemStack corner  = glass(mc.getCornerMaterial(),  "");
         ItemStack filler  = glass(mc.getFillerMaterial(),  "");
         ItemStack divider = glass(mc.getDividerMaterial(), "");
+        ItemStack accent  = glass(Material.CYAN_STAINED_GLASS_PANE, "");
+        ItemStack mglass  = glass(Material.MAGENTA_STAINED_GLASS_PANE, "");
 
-        // ── Fila 0: borde + cabeza preview centrada ───────────────
+        // ── Fila 0: borde superior con detalle ────────────────────
         inv.setItem(0, corner);
-        for (int i = 1; i <= 7; i++) inv.setItem(i, border);
+        inv.setItem(1, accent);
+        inv.setItem(2, border);
+        inv.setItem(3, mglass);
+        inv.setItem(4, border); // centro superior
+        inv.setItem(5, mglass);
+        inv.setItem(6, border);
+        inv.setItem(7, accent);
         inv.setItem(8, corner);
-        inv.setItem(4, buildPreviewHead(disguiseName, rp, cfg));
 
-        // ── Filas 1-4: relleno limpio con divisor central ─────────
-        for (int i = 9;  i < 18; i++) inv.setItem(i, filler);
-        for (int i = 18; i < 27; i++) inv.setItem(i, divider);
-        for (int i = 27; i < 45; i++) inv.setItem(i, filler);
+        // ── Fila 1: skull prominente en el centro (slot 13) ───────
+        inv.setItem(9,  glass(Material.GRAY_STAINED_GLASS_PANE, ""));
+        inv.setItem(10, glass(Material.GRAY_STAINED_GLASS_PANE, ""));
+        inv.setItem(11, mglass);
+        inv.setItem(12, filler);
+        inv.setItem(13, buildPreviewHead(disguiseName, rp, cfg));  // SKULL CON SKIN
+        inv.setItem(14, filler);
+        inv.setItem(15, mglass);
+        inv.setItem(16, glass(Material.GRAY_STAINED_GLASS_PANE, ""));
+        inv.setItem(17, glass(Material.GRAY_STAINED_GLASS_PANE, ""));
 
-        // Etiqueta informativa en el centro del divisor (slot 22)
+        // ── Fila 2: divisor + estrella de info al centro ──────────
+        inv.setItem(18, divider);
+        inv.setItem(19, divider);
+        inv.setItem(20, divider);
+        inv.setItem(21, divider);
         inv.setItem(22, buildDisguiseInfoLabel(disguiseName, rp, cfg, mc));
+        inv.setItem(23, divider);
+        inv.setItem(24, divider);
+        inv.setItem(25, divider);
+        inv.setItem(26, divider);
 
-        // ── Fila 5: botones de acción ─────────────────────────────
+        // ── Filas 3-4: relleno con pequeños detalles decorativos ──
+        for (int i = 27; i < 36; i++) inv.setItem(i, filler);
+        for (int i = 36; i < 45; i++) inv.setItem(i, filler);
+
+        // Detalles decorativos en la fila 3 centrada
+        inv.setItem(30, glass(Material.PURPLE_STAINED_GLASS_PANE, ""));
+        inv.setItem(31, buildStatusItem(disguiseName, rp, cfg));
+        inv.setItem(32, glass(Material.PURPLE_STAINED_GLASS_PANE, ""));
+
+        // ── Fila 5: borde + botones de acción ─────────────────────
         inv.setItem(45, corner);
-        for (int i = 46; i <= 53; i++) inv.setItem(i, border);
+        inv.setItem(46, buildActionButton(mc.getRenameMaterial(),
+                "rename", disguiseName, "", mc.getRenameName(),
+                mc.getRenameLore().isEmpty()
+                        ? List.of("&7Escribe un nombre diferente en el chat.", "",
+                                  "&e&l» &eClic para cambiar")
+                        : mc.getRenameLore()));
+        inv.setItem(47, border);
+        inv.setItem(48, border);
+        inv.setItem(49, buildConfirmButton(disguiseName, mc));
+        inv.setItem(50, border);
+        inv.setItem(51, border);
+        inv.setItem(52, buildActionButton(mc.getBackMaterial(),
+                "back", disguiseName, "", mc.getBackName(),
+                mc.getBackLore().isEmpty()
+                        ? List.of("&7Regresa al menú principal.", "",
+                                  "&c&l» &cClic para volver")
+                        : mc.getBackLore()));
         inv.setItem(53, corner);
-
-        List<String> renameLore = mc.getRenameLore().isEmpty()
-                ? List.of("&7Escribe un nombre diferente en el chat.", "",
-                          "&e&l» &eClic para cambiar")
-                : mc.getRenameLore();
-
-        List<String> backLore = mc.getBackLore().isEmpty()
-                ? List.of("&7Regresa al menú principal.", "",
-                          "&c&l» &cClic para volver")
-                : mc.getBackLore();
-
-        inv.setItem(mc.getRenameSlot(),    buildActionButton(mc.getRenameMaterial(),
-                "rename", disguiseName, "", mc.getRenameName(), renameLore));
-        inv.setItem(mc.getConfirmBtnSlot(), buildConfirmButton(disguiseName, mc));
-        inv.setItem(mc.getBackSlot(),      buildActionButton(mc.getBackMaterial(),
-                "back", disguiseName, "", mc.getBackName(), backLore));
 
         return inv;
     }
 
     // ─────────────────────────────────────────────────────────────
-    //  CONSTRUCTORES DE ÍTEMS
+    //  CONSTRUCTORES DE ÍTEMS — MENÚ PRINCIPAL
     // ─────────────────────────────────────────────────────────────
 
     private ItemStack buildPlayerInfoHead(Player player) {
@@ -225,9 +265,11 @@ public class MenuBuilder {
         String realPrefix = rp.getPlayerPrefix(player);
         if (realPrefix == null || realPrefix.isBlank()) realPrefix = "&8[&7Default&8]";
 
-        String curName  = cur  != null ? "&#CC88FF" + cur.disguiseName()  : "&8Ninguno";
-        String prevName = prev != null ? "&7"        + prev.disguiseName() : "&8Ninguno";
-        String estado   = cur  != null ? "&a● Disfrazado" : "&c● Sin disfraz";
+        boolean disguised = cur != null;
+        String curName  = disguised ? "&#CC88FF" + cur.disguiseName()  : "&8─ ninguno";
+        String prevName = prev != null ? "&7" + prev.disguiseName()    : "&8─ ninguno";
+        String estadoColor = disguised ? "&a" : "&7";
+        String estadoIcon  = disguised ? "● Disfrazado" : "● Sin disfraz";
 
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta  = (SkullMeta) skull.getItemMeta();
@@ -235,14 +277,16 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component("&#FFFFFF&l" + player.getName())));
 
         List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
-        addLoreLine(lore, cfg, "&8│ &8▸ &7Tu perfil");
-        addLoreLine(lore, cfg, "&8├─────────────────");
-        lore.add(ni(cfg.componentAny("&8│ &8Rango&8:    " + realPrefix)));
-        addLoreLine(lore, cfg, "&8│ &7Estado&8:   " + estado);
+        addLoreLine(lore, cfg, "&8┌──────────────────────");
+        addLoreLine(lore, cfg, "&8│ &8▸ &dTu perfil");
+        addLoreLine(lore, cfg, "&8├──────────────────────");
+        lore.add(ni(cfg.componentAny("&8│ &7Rango&8:    " + realPrefix)));
+        addLoreLine(lore, cfg, "&8│ &7Estado&8:   " + estadoColor + estadoIcon);
         addLoreLine(lore, cfg, "&8│ &7Disfraz&8:  " + curName);
         addLoreLine(lore, cfg, "&8│ &7Anterior&8: " + prevName);
-        addLoreLine(lore, cfg, "&8└─────────────────");
+        addLoreLine(lore, cfg, "&8├──────────────────────");
+        addLoreLine(lore, cfg, "&8│ &8Ping&8: &f" + player.getPing() + "ms");
+        addLoreLine(lore, cfg, "&8└──────────────────────");
         meta.lore(lore);
         skull.setItemMeta(meta);
         return skull;
@@ -256,11 +300,14 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component(mc.getWriteName())));
 
         List<String> rawLore = mc.getWriteLore().isEmpty()
-                ? List.of("&7Escribe el nombre de cualquier jugador de Minecraft.",
-                          "",
-                          "&8Nota&8: &7el nombre debe existir en Mojang.",
-                          "",
-                          "&#FFDD00&l» &eHaz clic para comenzar")
+                ? List.of(
+                    "&7Escribe el nombre de cualquier jugador",
+                    "&7de Minecraft (online u offline).",
+                    "",
+                    "&8│ &7Online  &8→ &aSkin + rango detectados",
+                    "&8│ &7Offline &8→ &7Skin desde Mojang API",
+                    "",
+                    "&#FFDD00&l» &eHaz clic para comenzar")
                 : mc.getWriteLore();
 
         meta.lore(buildBoxedLore(rawLore, cfg));
@@ -281,12 +328,13 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component(mc.getRemoveName())));
 
         List<String> rawLore = mc.getRemoveLore().isEmpty()
-                ? List.of("&7Elimina tu disfraz actual",
-                          "&7y restaura tu apariencia original.",
-                          "",
-                          "&8Activo&8: " + curName,
-                          "",
-                          "&c&l» &cClic para remover")
+                ? List.of(
+                    "&7Elimina tu disfraz actual y restaura",
+                    "&7tu nombre y skin originales.",
+                    "",
+                    "&8│ &7Activo&8: " + curName,
+                    "",
+                    "&c&l» &cClic para remover")
                 : mc.getRemoveLore();
 
         meta.lore(buildBoxedLore(rawLore, cfg));
@@ -301,7 +349,10 @@ public class MenuBuilder {
         DisguiseManager dm  = plugin.getDisguiseManager();
 
         String rankId = rp.getPlayerPrimaryGroup(online);
-        String prefix = rp.getGroupPrefix(rankId);
+        String prefix = rp.getPlayerPrefix(online);
+        if (prefix == null || prefix.isBlank()) {
+            prefix = rp.getGroupPrefix(rankId);
+        }
         if (prefix == null || prefix.isBlank()) prefix = "&8[&7Default&8]";
 
         boolean isDsg  = dm.isDisguised(online);
@@ -313,14 +364,18 @@ public class MenuBuilder {
         meta.displayName(ni(cfg.component("&#CC88FF&l" + online.getName())));
 
         List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8┌──────────────────────");
         lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + prefix)));
         addLoreLine(lore, cfg, "&8│ &7Ping&8:   &f" + online.getPing() + "ms");
         addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
-        addLoreLine(lore, cfg, "&8├─────────────────");
+        if (isDsg) {
+            DisguiseManager.DisguiseData d = dm.getCurrent(online.getUniqueId());
+            if (d != null) addLoreLine(lore, cfg, "&8│ &7Como&8:   &d" + d.disguiseName());
+        }
+        addLoreLine(lore, cfg, "&8├──────────────────────");
         addLoreLine(lore, cfg, "&8│ &#FFDD00&l» &eClic para disfrazarte");
         addLoreLine(lore, cfg, "&8│ &7como &d" + online.getName());
-        addLoreLine(lore, cfg, "&8└─────────────────");
+        addLoreLine(lore, cfg, "&8└──────────────────────");
         meta.lore(lore);
 
         var pdc = meta.getPersistentDataContainer();
@@ -331,64 +386,143 @@ public class MenuBuilder {
         return skull;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  CONSTRUCTORES DE ÍTEMS — MENÚ DE CONFIRMACIÓN
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Construye la cabeza de vista previa en el menú de confirmación.
+     *
+     * Para jugadores ONLINE → usa su perfil directo (SkullMeta.setOwningPlayer).
+     * Para jugadores OFFLINE → si la skin ya fue pre-cargada en caché por ChatListener,
+     *   crea un PlayerProfile con la propiedad "textures" y lo aplica con setPlayerProfile().
+     *   De lo contrario, usa setOwner(name) como fallback (el servidor resuelve async).
+     */
     private ItemStack buildPreviewHead(String disguiseName, RankProvider rp, ConfigManager cfg) {
-        Player    target  = Bukkit.getPlayerExact(disguiseName);
-        boolean   online  = target != null;
+        Player    target = Bukkit.getPlayerExact(disguiseName);
+        boolean   online = target != null;
         String    rankPrefix = online ? rp.getPlayerPrefix(target) : null;
         String    rankId     = online ? rp.getPlayerPrimaryGroup(target) : "?";
         String    estado     = online ? "&a● Online" : "&8● Offline";
 
-        // Limpiar colores del prefijo para mostrarlo limpio
         String rankClean = rankPrefix != null && !rankPrefix.isBlank()
                 ? rankPrefix
                 : "&8[&7" + capitalize(rankId) + "&8]";
 
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD);
         SkullMeta meta  = (SkullMeta) skull.getItemMeta();
-        if (target != null) meta.setOwningPlayer(target);
+
+        // ── Aplicar skin correctamente ────────────────────────────
+        applySkullSkin(meta, disguiseName, target);
 
         meta.displayName(ni(cfg.component("&#CC88FF&l" + disguiseName)));
         List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8┌──────────────────────");
         addLoreLine(lore, cfg, "&8│ &7Vista previa del disfraz");
-        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8├──────────────────────");
         addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
         lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankClean)));
         addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
-        addLoreLine(lore, cfg, "&8├─────────────────");
+        addLoreLine(lore, cfg, "&8├──────────────────────");
         addLoreLine(lore, cfg, "&8│ &7Confirma abajo para aplicar.");
-        addLoreLine(lore, cfg, "&8└─────────────────");
+        addLoreLine(lore, cfg, "&8└──────────────────────");
         meta.lore(lore);
         addGlow(meta);
         skull.setItemMeta(meta);
         return skull;
     }
 
+    /**
+     * Aplica la textura de skin al SkullMeta de forma óptima:
+     *  1. Online  → setOwningPlayer (tiene el perfil completo con su skin real).
+     *  2. Offline + skin en caché → setPlayerProfile con textura cacheada.
+     *  3. Fallback → setOwner(name) (el servidor resuelve desde Mojang asíncronamente).
+     */
+    private void applySkullSkin(SkullMeta meta, String playerName, Player onlinePlayer) {
+        if (onlinePlayer != null) {
+            meta.setOwningPlayer(onlinePlayer);
+            return;
+        }
+
+        SkinFetcher.SkinData cached = plugin.getSkinFetcher().getCached(playerName);
+        if (cached != null) {
+            try {
+                // UUID offline estándar de Minecraft: nameUUIDFromBytes("OfflinePlayer:<name>")
+                UUID offlineId = UUID.nameUUIDFromBytes(
+                        ("OfflinePlayer:" + playerName).getBytes(StandardCharsets.UTF_8));
+                PlayerProfile profile = Bukkit.createProfile(offlineId, playerName);
+                profile.setProperty(new ProfileProperty("textures", cached.value(), cached.signature()));
+                meta.setPlayerProfile(profile);
+                return;
+            } catch (Exception e) {
+                // Si falla la asignación de perfil custom, caemos al fallback
+            }
+        }
+
+        // Fallback: el servidor buscará el UUID y skin de forma asíncrona
+        //noinspection deprecation
+        meta.setOwner(playerName);
+    }
+
     private ItemStack buildDisguiseInfoLabel(String disguiseName, RankProvider rp,
                                              ConfigManager cfg, MenuConfig mc) {
-        Player  target   = Bukkit.getPlayerExact(disguiseName);
-        boolean online   = target != null;
+        Player  target     = Bukkit.getPlayerExact(disguiseName);
+        boolean online     = target != null;
         String  rankPrefix = online ? rp.getPlayerPrefix(target) : null;
         String  rankId     = online ? rp.getPlayerPrimaryGroup(target) : null;
         String  rankClean  = rankPrefix != null && !rankPrefix.isBlank()
                 ? rankPrefix
                 : (rankId != null ? "&8[&f" + capitalize(rankId) + "&8]" : "&8[&7Default&8]");
-        String  estado   = online ? "&a● Online" : "&8● Offline &7(skin desde Mojang)";
+        String  estado     = online ? "&a● Online" : "&8● Offline &7(skin desde Mojang)";
+
+        boolean skinCached = plugin.getSkinFetcher().getCached(disguiseName) != null;
+        String  skinStatus = online ? "&a✔ Skin directa del jugador"
+                           : (skinCached ? "&a✔ Skin lista" : "&e⚠ Skin en espera");
 
         ItemStack item = new ItemStack(Material.NETHER_STAR);
         ItemMeta  meta = item.getItemMeta();
         meta.displayName(ni(cfg.component("&#CC88FF&l✦ Información del disfraz")));
+        addGlow(meta);
 
         List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
+        addLoreLine(lore, cfg, "&8┌──────────────────────");
         addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
         lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankClean)));
         addLoreLine(lore, cfg, "&8│ &7Estado&8: " + estado);
-        addLoreLine(lore, cfg, "&8├─────────────────");
-        addLoreLine(lore, cfg, "&8│ &7El rango se detecta automáticamente");
-        addLoreLine(lore, cfg, "&8│ &7de LuckPerms al confirmar.");
-        addLoreLine(lore, cfg, "&8└─────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Skin&8:   " + skinStatus);
+        addLoreLine(lore, cfg, "&8├──────────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Al confirmar se aplicarán&8:");
+        addLoreLine(lore, cfg, "&8│  &#CC88FF✦ &7Nombre visible");
+        addLoreLine(lore, cfg, "&8│  &#CC88FF✦ &7Skin del jugador");
+        addLoreLine(lore, cfg, "&8│  &#CC88FF✦ &7Rango en nameplate");
+        addLoreLine(lore, cfg, "&8└──────────────────────");
         meta.lore(lore);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    /**
+     * Ítem de estado decorativo que muestra si el objetivo es online/offline
+     * con su información básica.
+     */
+    private ItemStack buildStatusItem(String disguiseName, RankProvider rp, ConfigManager cfg) {
+        Player  target = Bukkit.getPlayerExact(disguiseName);
+        boolean online = target != null;
+
+        Material mat = online ? Material.LIME_DYE : Material.GRAY_DYE;
+        ItemStack item = new ItemStack(mat);
+        ItemMeta  meta = item.getItemMeta();
+        meta.displayName(ni(cfg.component(online ? "&a&l● Online" : "&8&l● Offline")));
+
+        List<Component> lore = new ArrayList<>();
+        if (online) {
+            addLoreLine(lore, cfg, "&7Ping&8: &f" + target.getPing() + "ms");
+            addLoreLine(lore, cfg, "&7Mundo&8: &f" + target.getWorld().getName());
+        } else {
+            addLoreLine(lore, cfg, "&7El jugador no está conectado.");
+            addLoreLine(lore, cfg, "&7La skin se carga desde Mojang API.");
+        }
+        meta.lore(lore.isEmpty() ? null : lore);
         item.setItemMeta(meta);
         return item;
     }
@@ -400,22 +534,21 @@ public class MenuBuilder {
         String        rankTxt = tgt != null
                 ? (rp.getPlayerPrefix(tgt) != null && !rp.getPlayerPrefix(tgt).isBlank()
                         ? rp.getPlayerPrefix(tgt) : "&7" + rp.getPlayerPrimaryGroup(tgt))
-                : "&7automático al aplicar";
+                : "&7auto (de LuckPerms al confirmar)";
 
         ItemStack item = new ItemStack(mc.getConfirmBtnMaterial());
         ItemMeta  meta = item.getItemMeta();
 
         meta.displayName(ni(cfg.component(mc.getConfirmBtnName())));
         List<Component> lore = new ArrayList<>();
-        addLoreLine(lore, cfg, "&8┌─────────────────");
-        addLoreLine(lore, cfg, "&8│ &7Aplicará lo siguiente&8:");
-        addLoreLine(lore, cfg, "&8├─────────────────");
-        addLoreLine(lore, cfg, "&8│ &8Nombre&8: &d" + disguiseName);
-        lore.add(ni(cfg.componentAny("&8│ &8Rango&8:  " + rankTxt)));
-        addLoreLine(lore, cfg, "&8│ &8Skin&8:   &7La de &d" + disguiseName);
-        addLoreLine(lore, cfg, "&8├─────────────────");
-        addLoreLine(lore, cfg, "&8│ &a&l» &aHaz clic para aplicar");
-        addLoreLine(lore, cfg, "&8└─────────────────");
+        addLoreLine(lore, cfg, "&8┌──────────────────────");
+        addLoreLine(lore, cfg, "&8│ &7Se aplicará&8:");
+        addLoreLine(lore, cfg, "&8│  &#CC88FF✦ &8Nombre&8: &d" + disguiseName);
+        lore.add(ni(cfg.componentAny("&8│  &#CC88FF✦ &8Rango&8:  " + rankTxt)));
+        addLoreLine(lore, cfg, "&8│  &#CC88FF✦ &8Skin&8:   &7La de &d" + disguiseName);
+        addLoreLine(lore, cfg, "&8├──────────────────────");
+        addLoreLine(lore, cfg, "&8│ &a&l» &aHaz clic para confirmar");
+        addLoreLine(lore, cfg, "&8└──────────────────────");
         meta.lore(lore);
 
         var pdc = meta.getPersistentDataContainer();
@@ -471,10 +604,9 @@ public class MenuBuilder {
     //  UTILIDADES
     // ─────────────────────────────────────────────────────────────
 
-    /** Construye un lore encuadrado con bordes ┌───┐ automáticamente. */
     private List<Component> buildBoxedLore(List<String> lines, ConfigManager cfg) {
         List<Component> result = new ArrayList<>();
-        result.add(ni(cfg.component("&8┌─────────────────")));
+        result.add(ni(cfg.component("&8┌──────────────────────")));
         for (String line : lines) {
             if (line == null || line.isEmpty()) {
                 result.add(ni(cfg.component("&8│")));
@@ -482,7 +614,7 @@ public class MenuBuilder {
                 result.add(ni(cfg.component("&8│ " + line)));
             }
         }
-        result.add(ni(cfg.component("&8└─────────────────")));
+        result.add(ni(cfg.component("&8└──────────────────────")));
         return result;
     }
 
@@ -504,7 +636,6 @@ public class MenuBuilder {
     }
 
     private static void addGlow(ItemMeta meta) {
-        // UNBREAKING accesible por clave en Paper 1.20-1.21+
         Enchantment ench = Enchantment.getByKey(NamespacedKey.minecraft("unbreaking"));
         if (ench != null) meta.addEnchant(ench, 1, true);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES);

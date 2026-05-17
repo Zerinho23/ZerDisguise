@@ -15,12 +15,12 @@ import java.util.UUID;
 
 /**
  * Intercepta mensajes de chat para jugadores en modo "esperando nombre de disfraz".
- * También maneja:
- *   - Muerte del jugador → quita disfraz automáticamente con mensaje.
- *   - Quit del jugador  → limpia todo el estado (disfraz, caché de skin, awaiting).
  *
- * Usa el evento moderno de Paper (AsyncChatEvent) en lugar del deprecated
- * AsyncPlayerChatEvent de Bukkit.
+ * Cuando el jugador escribe un nombre válido:
+ *  1. Se pre-carga la skin en caché de forma asíncrona.
+ *  2. Una vez lista (o fallida), se abre el menú de confirmación con la cabeza correcta.
+ *
+ * También maneja muerte (quita disfraz) y quit (limpia estado completo).
  */
 public class ChatListener implements Listener {
 
@@ -45,7 +45,6 @@ public class ChatListener implements Listener {
         e.setCancelled(true);
         awaitingInput.remove(player.getUniqueId());
 
-        // Obtener el texto plano del mensaje (Adventure Component → String)
         String input = PlainTextComponentSerializer.plainText()
                 .serialize(e.message()).trim();
 
@@ -57,14 +56,39 @@ public class ChatListener implements Listener {
         }
 
         if (input.length() > 16 || !input.matches("[a-zA-Z0-9_]+")) {
-            player.sendMessage(cfg.getPrefix().append(
-                    cfg.component(cfg.getMsgInvalidName())));
+            player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgInvalidName())));
             return;
         }
 
-        // Abrir menú de confirmación en el hilo principal
-        plugin.getServer().getScheduler().runTask(plugin, () ->
-                player.openInventory(new MenuBuilder(plugin).buildConfirmMenu(player, input)));
+        // Pre-cargar la skin de forma asíncrona para que la cabeza en el menú
+        // de confirmación muestre la skin real del jugador objetivo.
+        // El menú se abre DESPUÉS de que la skin esté lista (o si falla).
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) return;
+
+            player.sendMessage(cfg.getPrefix().append(
+                    cfg.component("&7Cargando skin de &d" + input + "&7...")));
+
+            plugin.getSkinFetcher().fetchSkin(
+                    input,
+                    skinData -> {
+                        // Skin lista y en caché → abrir menú con cabeza correcta
+                        if (player.isOnline()) {
+                            player.openInventory(
+                                    new MenuBuilder(plugin).buildConfirmMenu(player, input));
+                        }
+                    },
+                    error -> {
+                        // Skin falló → abrir de todas formas (mostrará cabeza default o por nombre)
+                        if (player.isOnline()) {
+                            player.openInventory(
+                                    new MenuBuilder(plugin).buildConfirmMenu(player, input));
+                            player.sendMessage(cfg.getPrefix().append(
+                                    cfg.component("&e⚠ &7No se pudo precargar la skin.")));
+                        }
+                    }
+            );
+        });
     }
 
     @EventHandler
@@ -76,11 +100,6 @@ public class ChatListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         Player player = e.getPlayer();
         awaitingInput.remove(player.getUniqueId());
-
-        // Limpiar el estado completo del jugador al desconectarse:
-        //  - Quita el registro del disfraz activo
-        //  - Libera el caché de skin original (ya no necesitamos restaurarla)
-        //  - Quita el nameplate del scoreboard
         if (plugin.getDisguiseManager().isDisguised(player)) {
             plugin.getDisguiseManager().cleanupOnQuit(player);
         }
