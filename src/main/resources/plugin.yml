@@ -1,8 +1,8 @@
 name: ZerDisguise
-version: 2.2.1
+version: 2.3.0
 main: me.zerith.zerdisguise.ZerDisguise
 api-version: "1.20"
-description: Plugin de disfraces con GUI interactiva — v2.2.1
+description: Plugin de disfraces con GUI interactiva — v2.3.0
 author: zerinho23
 softdepend:
   - Vault
