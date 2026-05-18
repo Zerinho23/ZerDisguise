@@ -51,25 +51,29 @@ public class DisguiseManager {
 
 
         // Capturar rango previo ANTES de que visualRankOnly sea eliminado más abajo.
-        // Fallback cuando no se especifica rankId y el jugador destino no está en línea
-        // (evita que se pierda el rango Zeus al aplicar disfraz The_Titan19).
-        String priorRankId = visualRankOnly.get(player.getUniqueId());
+        String  priorRankId      = visualRankOnly.get(player.getUniqueId());
+        boolean hadExplicitRank  = priorRankId != null; // el jugador eligió rango explícitamente con applyRankOnly
         if (priorRankId == null && cur != null && !"default".equals(cur.rankId()))
             priorRankId = cur.rankId();
+
         String resolvedRankId = rankId != null && !rankId.isBlank() ? rankId : "default";
         String rankPrefix     = null;
         String rankDisplay    = null;
 
+        // Solo auto-detectar el rango del objetivo si el usuario NO había elegido uno
+        // explícitamente. Si lo había elegido (applyRankOnly → visualRankOnly), ese rango
+        // tiene prioridad absoluta: ZEUS + HALIN debe dar ZEUS, no el rango de HALIN.
         Player onlineTarget = Bukkit.getPlayerExact(disguiseName);
-        if (onlineTarget != null) {
+        if (onlineTarget != null && !hadExplicitRank) {
             resolvedRankId = rp.getPlayerPrimaryGroup(onlineTarget);
             rankPrefix     = rp.getPlayerPrefix(onlineTarget);
         }
 
-
-        // Si el rango resuelto es "default" pero el jugador tenía un rango activo,
-        // conservarlo. Ej: Zeus (visual) + The_Titan19 (disfraz) = Zeus + The_Titan19.
-        if ("default".equals(resolvedRankId) && priorRankId != null) {
+        // Preservar rango explícito (siempre) o rango previo (si resuelto es default)
+        if (hadExplicitRank) {
+            resolvedRankId = priorRankId; // rango elegido por el usuario, inamovible
+            rankPrefix     = null;        // forzar re-lookup del prefix para este rankId
+        } else if ("default".equals(resolvedRankId) && priorRankId != null) {
             resolvedRankId = priorRankId;
         }
         if (rankPrefix == null || rankPrefix.isBlank())
