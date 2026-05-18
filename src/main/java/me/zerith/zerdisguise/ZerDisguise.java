@@ -30,6 +30,7 @@ public class ZerDisguise extends JavaPlugin {
     private SkinFetcher     skinFetcher;
     private SkinApplier     skinApplier;
     private ChatListener    chatListener;
+    private ProtocolLibHook protocolLibHook;
     private BukkitTask      actionbarTask;
 
     @Override
@@ -51,6 +52,8 @@ public class ZerDisguise extends JavaPlugin {
         skinApplier     = new SkinApplier(this);
         disguiseManager = new DisguiseManager(this);
         chatListener    = new ChatListener(this);
+        protocolLibHook = new ProtocolLibHook(this);
+        protocolLibHook.register();
 
         DisguiseCommand cmd = new DisguiseCommand(this);
 
@@ -128,4 +131,5 @@ public class ZerDisguise extends JavaPlugin {
     public SkinFetcher      getSkinFetcher()      { return skinFetcher; }
     public SkinApplier      getSkinApplier()      { return skinApplier; }
     public ChatListener     getChatListener()     { return chatListener; }
+    public ProtocolLibHook  getProtocolLibHook()  { return protocolLibHook; }
 }
