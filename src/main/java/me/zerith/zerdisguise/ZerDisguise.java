@@ -55,6 +55,13 @@ public class ZerDisguise extends JavaPlugin {
         protocolLibHook = new ProtocolLibHook(this);
         protocolLibHook.register();
 
+        // Hook de TAB (neznamy) — debe inicializarse después de que TAB esté habilitado
+        if (TabHook.init()) {
+            getLogger().info(GN + "TAB hook activo — nombre del disfraz en tab list garantizado." + R);
+        } else if (Bukkit.getPluginManager().isPluginEnabled("TAB")) {
+            getLogger().warning("TAB detectado pero API no accesible — nombre del disfraz puede no verse en tab list.");
+        }
+
         DisguiseCommand cmd = new DisguiseCommand(this);
 
         // Registro del comando principal /disguise y sus alias
