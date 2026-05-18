@@ -103,7 +103,7 @@
 
   ## Instalación
 
-  1. Descarga `ZerDisguise-2.5.0.jar` de [Releases](https://github.com/Zerinho23/ZerDisguise/releases/latest)
+  1. Descarga `ZerDisguise-2.5.1.jar` de [Releases](https://github.com/Zerinho23/ZerDisguise/releases/latest)
   2. Colócalo en la carpeta `plugins/` de tu servidor
   3. Reinicia el servidor
   4. Edita `plugins/ZerDisguise/config.yml` y `menu.yml` a tu gusto
@@ -147,6 +147,10 @@
   ---
 
   ## Historial de versiones
+
+  ### v2.5.1
+  - 🔧 **Compatibilidad LP 5.x completa** — reemplazado `NodeMap.clear(Predicate)` (solo LP 5.4+) por `getNodes() + remove()`, compatible con **todas las versiones de LuckPerms API 5.x**
+  - 🐛 Sin cambios de comportamiento respecto a v2.5.0 — solo corrección de compatibilidad interna
 
   ### v2.5.0
   - 💬 **Chat sin doble rango** — se inyecta un nodo de prefijo en LuckPerms con prioridad 9999 al disfrazarse, sobreescribiendo el rango real para plugins de chat (EssentialsChat, LP chat format, etc.)
