@@ -102,7 +102,11 @@ public class DisguiseManager {
         // solo el prefijo del disfraz, sin duplicar el rango real del jugador.
         rp.setDisguisePrefix(player, rankPrefix);
 
+        // TAB (neznamy) ignora setPlayerListName() — usar su API directamente.
+        TabHook.setTabName(player.getUniqueId(), disguiseName);
+
         final String finalRankDisplay = rankDisplay;
+        final String finalDisguiseName = disguiseName;
         player.sendMessage(cfg.getPrefix().append(
                 cfg.component("&7Cargando skin de &d" + disguiseName + "&7...")));
 
@@ -110,8 +114,11 @@ public class DisguiseManager {
                 skinData -> {
                     if (!player.isOnline()) return;
                     boolean ok = sa.applySkin(player, skinData);
+                    // Re-aplicar nombre en TAB tras el ciclo hidePlayer/showPlayer
+                    // (TAB puede resetear el nombre al recibir el paquete de respawn).
+                    TabHook.setTabName(player.getUniqueId(), finalDisguiseName);
                     String msg = cfg.getMsgApplied()
-                            .replace("{disguise}", disguiseName)
+                            .replace("{disguise}", finalDisguiseName)
                             .replace("{rank}", finalRankDisplay);
                     player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
                     if (!ok) player.sendMessage(cfg.getPrefix().append(
@@ -120,7 +127,7 @@ public class DisguiseManager {
                 err -> {
                     if (!player.isOnline()) return;
                     String msg = cfg.getMsgApplied()
-                            .replace("{disguise}", disguiseName)
+                            .replace("{disguise}", finalDisguiseName)
                             .replace("{rank}", finalRankDisplay);
                     player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
                     player.sendMessage(cfg.getPrefix().append(
@@ -210,10 +217,20 @@ public class DisguiseManager {
         // si algún plugin resetea el prefijo del jugador en el respawn)
         rp.setDisguisePrefix(player, rankPrefix);
 
+        // Restaurar nombre en TAB tras respawn
+        final String tabName = nameToUse;
+        TabHook.setTabName(player.getUniqueId(), tabName);
+
         if (cur != null) {
             final String fn = nameToUse;
             plugin.getSkinFetcher().fetchSkin(fn,
-                    skinData -> { if (player.isOnline()) sa.applySkin(player, skinData); },
+                    skinData -> {
+                        if (player.isOnline()) {
+                            sa.applySkin(player, skinData);
+                            // Re-aplicar tras el ciclo hide/show del skin
+                            TabHook.setTabName(player.getUniqueId(), tabName);
+                        }
+                    },
                     err -> plugin.getLogger().warning(
                             "[DisguiseManager] No se pudo restaurar skin tras respawn: " + err));
         }
@@ -250,6 +267,9 @@ public class DisguiseManager {
         // Restaurar el prefijo real en LuckPerms/Vault
         rp.clearDisguisePrefix(player);
 
+        // Restaurar nombre real en TAB
+        TabHook.clearTabName(player.getUniqueId());
+
         player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
     }
 
@@ -268,6 +288,9 @@ public class DisguiseManager {
         if (wasDisguised || hadVisualRank) {
             plugin.getRankProvider().clearDisguisePrefix(player);
         }
+
+        // Limpiar nombre en TAB al desconectarse
+        TabHook.clearTabName(player.getUniqueId());
     }
 
     // ──────────────────────────────────────────────────────────────
