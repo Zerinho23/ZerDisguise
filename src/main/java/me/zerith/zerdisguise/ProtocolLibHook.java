@@ -24,7 +24,7 @@ package me.zerith.zerdisguise;
    * del jugador.
    *
    * Estrategia:
-   *  - Registra un listener en PLAYER_INFO_UPDATE con prioridad HIGHEST.
+   *  - Registra un listener en PLAYER_INFO (= PlayerInfoUpdate en 1.19.3+) con prioridad HIGHEST.
    *  - Esto hace que se ejecute DESPUÉS del listener del plugin TAB (que usa NORMAL/HIGH).
    *  - Para cada jugador disfrazado en el paquete, reemplaza el displayName con el
    *    nombre del disfraz (en color §d), anulando lo que TAB haya puesto.
@@ -79,7 +79,7 @@ package me.zerith.zerdisguise;
        */
       private void registerPlayerInfoUpdateListener() {
           pm.addPacketListener(new PacketAdapter(plugin, ListenerPriority.HIGHEST,
-                  PacketType.Play.Server.PLAYER_INFO_UPDATE) {
+                  PacketType.Play.Server.PLAYER_INFO) {
 
               @Override
               public void onPacketSending(PacketEvent event) {
