@@ -148,6 +148,13 @@
 
   ## Historial de versiones
 
+  ### v2.5.8
+  - 🔍 **Diagnóstico total de TAB hook** — `TabHook.init()` ahora emite `[WARNING]` en consola con cada paso: versión de TAB detectada, clases encontradas, lista completa de métodos disponibles, y estrategia seleccionada. Si falla, indica exactamente por qué.
+  - 🛡️ **Tarea periódica de seguridad** — cada 40 ticks (2 s) se re-aplica el nombre del disfraz en TAB para todos los jugadores activos. Aunque TAB resetee el nombre, se corrige automáticamente en ≤ 2 s.
+  - ⏱️ **Delays correctos en apply/respawn** — en lugar de llamar `setTabName` inmediatamente tras `hidePlayer/showPlayer`, se espera 10 ticks para que TAB termine su propio ciclo de re-procesado antes de sobreescribir.
+  - 🔧 **Fallback por nombre** — si la firma exacta del método `setCustomTabName` no coincide, ahora busca también por nombre + cantidad de parámetros (robustez para subversiones de TAB v6).
+  - 🖥️ **Nuevo subcomando `/zd debug`** — muestra estado del hook, estrategia activa, y fuerza el nombre en TAB al momento para el jugador que lo ejecuta. Requiere permiso `zerdisguise.reload`.
+
   ### v2.5.7
   - 🏷️ **Fix TAB (neznamy) — nombre del disfraz en tab list** — El plugin TAB ignora `setPlayerListName()` por completo. ZerDisguise ahora hookea la API interna de TAB via reflexión para forzar el nombre del disfraz ("The_Titan19") en el tab list sin requerir ProtocolLib. Compatible con TAB v4 / v5 / v6.
   - 🔄 **Re-aplicación tras skin load y respawn** — el nombre en TAB se re-aplica después del ciclo hide/show del skin para evitar que TAB lo revierta al recibir el paquete de re-spawn de la entidad.
