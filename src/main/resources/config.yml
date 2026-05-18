@@ -68,8 +68,8 @@
     invalid-name:      "&cNombre invalido. Solo letras, numeros y _ &8(max 16 caracteres)."
     rank-applied:      "&7Rango visual aplicado&8: &f{rank}"
     disguise-death:    "&7Tu disfraz se mantuvo tras la muerte."
-# ── Action Bar ─────────────────────────────────────────
-actionbar:
-  enabled: true
-  interval: 20
-  format: "&8[&d&l⚗&8] &7Disfrazado como&8: &d{nombre} &8| &7Rango&8: {rango} &8| &7Tiempo&8: &a{tiempo}"
+  # ── Action Bar ─────────────────────────────────────────
+  actionbar:
+    enabled: true
+    interval: 20
+    format: "&8[&d&l⚗&8] &7Disfrazado como&8: &d{nombre} &8| &7Rango&8: {rango} &8| &7Tiempo&8: &a{tiempo}"
