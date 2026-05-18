@@ -176,27 +176,37 @@ package me.zerith.zerdisguise;
       private void startNameplateTask(Player player, String rankPrefix, String displayName) {
           stopNameplateTask(player.getUniqueId());
 
+          // Contador para forzar re-envío cada 10 ciclos (20 ticks = ~1 s).
+          // TAB intercepta paquetes a nivel de red, así que aunque Bukkit crea que
+          // el valor es correcto, TAB puede haber enviado su propia versión encima.
+          // El forzado periódico asegura que "The_Titan19" prevalece en el tab list.
+          final long[] tick = {0};
+
           BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
               if (!player.isOnline()) { stopNameplateTask(player.getUniqueId()); return; }
 
               String expected = expectedDisplays.getOrDefault(player.getUniqueId(), displayName);
+              tick[0]++;
 
-              // ── Mantener nombre en tab list y chat ───────────────────
-              if (!expected.equals(player.getDisplayName())) {
+              // ── Re-aplicar nombre en tab list y chat ─────────────────
+              // Condicional: si Bukkit detecta que el valor cambió.
+              // Forzado: cada 10 ciclos (~1s) para vencer paquetes de TAB.
+              boolean force = (tick[0] % 10) == 0;
+              if (force || !expected.equals(player.getDisplayName())) {
                   player.setDisplayName(expected);
               }
-              if (!expected.equals(player.getPlayerListName())) {
+              if (force || !expected.equals(player.getPlayerListName())) {
                   player.setPlayerListName(expected);
               }
 
-              // ── Mantener team en mainScoreboard ──────────────────────
+              // ── Re-aplicar team en mainScoreboard si fue removido ─────
               Scoreboard main   = Bukkit.getScoreboardManager().getMainScoreboard();
               Team       myTeam = main.getTeam(safeTeamName(player));
               if (myTeam == null || !myTeam.hasEntry(player.getName())) {
                   applyNameplateNow(player, rankPrefix);
               }
 
-          }, 10L, NAMEPLATE_TASK_PERIOD);
+          }, 0L, NAMEPLATE_TASK_PERIOD);
           nameplateTasks.put(player.getUniqueId(), task);
       }
 
