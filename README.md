@@ -148,6 +148,11 @@
 
   ## Historial de versiones
 
+  ### v2.5.9
+  - 🐛 **Fix regresión de rango** — al elegir rango ZEUS primero y luego nombre HALIN, el rango ya no revertía a "default". El rango elegido explícitamente via `applyRankOnly` ahora tiene prioridad absoluta sobre el auto-detectado del jugador objetivo (aunque esté online con un rango distinto).
+  - 🏷️ **Solución definitiva para TAB list** — al iniciar, ZerDisguise detecta si TAB está instalado y lee su `config.yml`. Si el placeholder `%zerdisguise_name%` no está configurado, emite en consola las instrucciones exactas (sección, opción y valor) para que el admin lo configure en 30 segundos. Esta es la integración correcta: TAB llama al placeholder PAPI de ZerDisguise que devuelve el nombre del disfraz.
+  - 🌐 **Alias PAPI** — `%zerdisguise_nombre%` añadido como alias de `%zerdisguise_name%` (ambos funcionan).
+
   ### v2.5.8
   - 🔍 **Diagnóstico total de TAB hook** — `TabHook.init()` ahora emite `[WARNING]` en consola con cada paso: versión de TAB detectada, clases encontradas, lista completa de métodos disponibles, y estrategia seleccionada. Si falla, indica exactamente por qué.
   - 🛡️ **Tarea periódica de seguridad** — cada 40 ticks (2 s) se re-aplica el nombre del disfraz en TAB para todos los jugadores activos. Aunque TAB resetee el nombre, se corrige automáticamente en ≤ 2 s.
