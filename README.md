@@ -148,6 +148,11 @@
 
   ## Historial de versiones
 
+  ### v2.5.7
+  - 🏷️ **Fix TAB (neznamy) — nombre del disfraz en tab list** — El plugin TAB ignora `setPlayerListName()` por completo. ZerDisguise ahora hookea la API interna de TAB via reflexión para forzar el nombre del disfraz ("The_Titan19") en el tab list sin requerir ProtocolLib. Compatible con TAB v4 / v5 / v6.
+  - 🔄 **Re-aplicación tras skin load y respawn** — el nombre en TAB se re-aplica después del ciclo hide/show del skin para evitar que TAB lo revierta al recibir el paquete de re-spawn de la entidad.
+  - 📋 **TAB añadido a softdepend** en `plugin.yml` para garantizar el orden de carga correcto.
+
   ### v2.5.6
   - 🐛 **Fix crítico: config.yml y menu.yml** — corregida indentación YAML incorrecta que causaba `InvalidConfigurationException` al cargar el plugin (`expected '<document start>'` en línea 72)
   - 🔧 **Fix plugin.yml** — corregida entrada `-ProtocolLib` sin espacio en la lista `softdepend`
