@@ -104,6 +104,9 @@ public class DisguiseManager {
 
         // TAB (neznamy) ignora setPlayerListName() — usar su API directamente.
         TabHook.setTabName(player.getUniqueId(), disguiseName);
+        // También programar re-aplicación 5 ticks después: TAB puede procesar
+        // al jugador un tick más tarde y resetear el nombre.
+        scheduleTabName(player.getUniqueId(), disguiseName, 5L);
 
         final String finalRankDisplay = rankDisplay;
         final String finalDisguiseName = disguiseName;
@@ -114,9 +117,9 @@ public class DisguiseManager {
                 skinData -> {
                     if (!player.isOnline()) return;
                     boolean ok = sa.applySkin(player, skinData);
-                    // Re-aplicar nombre en TAB tras el ciclo hidePlayer/showPlayer
-                    // (TAB puede resetear el nombre al recibir el paquete de respawn).
-                    TabHook.setTabName(player.getUniqueId(), finalDisguiseName);
+                    // applySkin() hace hidePlayer/showPlayer — TAB re-procesa al jugador.
+                    // Esperamos 10 ticks para que TAB termine su ciclo ANTES de sobreescribir.
+                    scheduleTabName(player.getUniqueId(), finalDisguiseName, 10L);
                     String msg = cfg.getMsgApplied()
                             .replace("{disguise}", finalDisguiseName)
                             .replace("{rank}", finalRankDisplay);
@@ -217,9 +220,9 @@ public class DisguiseManager {
         // si algún plugin resetea el prefijo del jugador en el respawn)
         rp.setDisguisePrefix(player, rankPrefix);
 
-        // Restaurar nombre en TAB tras respawn
+        // Restaurar nombre en TAB tras respawn (con delay para dejar que TAB procese el respawn)
         final String tabName = nameToUse;
-        TabHook.setTabName(player.getUniqueId(), tabName);
+        scheduleTabName(player.getUniqueId(), tabName, 10L);
 
         if (cur != null) {
             final String fn = nameToUse;
@@ -227,8 +230,7 @@ public class DisguiseManager {
                     skinData -> {
                         if (player.isOnline()) {
                             sa.applySkin(player, skinData);
-                            // Re-aplicar tras el ciclo hide/show del skin
-                            TabHook.setTabName(player.getUniqueId(), tabName);
+                            scheduleTabName(player.getUniqueId(), tabName, 10L);
                         }
                     },
                     err -> plugin.getLogger().warning(
@@ -291,6 +293,30 @@ public class DisguiseManager {
 
         // Limpiar nombre en TAB al desconectarse
         TabHook.clearTabName(player.getUniqueId());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    //  TAB re-aplicación periódica (red de seguridad)
+    // ──────────────────────────────────────────────────────────────
+
+    /**
+     * Llamado periódicamente desde ZerDisguise (cada ~40 ticks).
+     * Re-aplica los nombres en TAB para todos los jugadores disfrazados —
+     * safety net para el caso en que TAB resetee el nombre por algún evento.
+     */
+    public void tickTabNames() {
+        if (!TabHook.isAvailable()) return;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            DisguiseData cur = current.get(player.getUniqueId());
+            if (cur != null) TabHook.setTabName(player.getUniqueId(), cur.disguiseName());
+        }
+    }
+
+    /** Programa una llamada a TabHook.setTabName N ticks en el futuro. */
+    private void scheduleTabName(UUID uuid, String disguiseName, long delayTicks) {
+        if (!TabHook.isAvailable()) return;
+        Bukkit.getScheduler().runTaskLater(plugin,
+                () -> TabHook.setTabName(uuid, disguiseName), delayTicks);
     }
 
     // ──────────────────────────────────────────────────────────────
