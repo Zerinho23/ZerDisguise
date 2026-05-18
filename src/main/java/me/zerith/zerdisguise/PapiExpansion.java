@@ -59,7 +59,7 @@ package me.zerith.zerdisguise;
           ConfigManager                cfg      = plugin.getConfigManager();
 
           return switch (params.toLowerCase()) {
-              case "name" ->
+              case "name", "nombre" ->
                   cur != null ? cur.disguiseName() : player.getName();
 
               case "displayname" ->
