@@ -55,11 +55,10 @@ public class ZerDisguise extends JavaPlugin {
         protocolLibHook = new ProtocolLibHook(this);
         protocolLibHook.register();
 
-        // Hook de TAB (neznamy) — debe inicializarse después de que TAB esté habilitado
-        if (TabHook.init()) {
-            getLogger().info(GN + "TAB hook activo — nombre del disfraz en tab list garantizado." + R);
-        } else if (Bukkit.getPluginManager().isPluginEnabled("TAB")) {
-            getLogger().warning("TAB detectado pero API no accesible — nombre del disfraz puede no verse en tab list.");
+        // Hook de TAB (neznamy) — debe inicializarse después de que TAB esté habilitado.
+        // init() emite WARNING detallados propios — aquí solo logueamos el resultado final.
+        if (TabHook.init(getLogger())) {
+            getLogger().info(GN + "TAB hook ACTIVO (" + TabHook.getStrategyName() + ")." + R);
         }
 
         DisguiseCommand cmd = new DisguiseCommand(this);
@@ -83,6 +82,12 @@ public class ZerDisguise extends JavaPlugin {
 
         // Tarea global de la barra de acción (guardamos referencia para poder reiniciarla en /reload)
         scheduleActionbarTask();
+
+        // Tarea periódica de re-aplicación de nombres TAB (safety net — cada 40 ticks = 2 s)
+        if (TabHook.isAvailable()) {
+            Bukkit.getScheduler().runTaskTimer(
+                    this, () -> disguiseManager.tickTabNames(), 40L, 40L);
+        }
 
         printBanner();
     }
