@@ -118,7 +118,7 @@
 
   ## Compatibilidad con plugins de TAB / Scoreboard
 
-  ZerDisguise v2.5.0 es compatible de forma **automática y sin configuración** con:
+  ZerDisguise v2.5.5 es compatible de forma **automática y sin configuración** con:
 
   | Plugin | Compatibilidad |
   |---|---|
@@ -148,11 +148,11 @@
 
   ## Historial de versiones
 
-  ### v2.5.1
+  ### v2.5.5
   - 🔧 **Compatibilidad LP 5.x completa** — reemplazado `NodeMap.clear(Predicate)` (solo LP 5.4+) por `getNodes() + remove()`, compatible con **todas las versiones de LuckPerms API 5.x**
-  - 🐛 Sin cambios de comportamiento respecto a v2.5.0 — solo corrección de compatibilidad interna
+  - 🐛 Sin cambios de comportamiento respecto a v2.5.5 — solo corrección de compatibilidad interna
 
-  ### v2.5.0
+  ### v2.5.5
   - 💬 **Chat sin doble rango** — se inyecta un nodo de prefijo en LuckPerms con prioridad 9999 al disfrazarse, sobreescribiendo el rango real para plugins de chat (EssentialsChat, LP chat format, etc.)
   - 📋 **TAB/Scoreboard automático** — el disfraz se aplica en los scoreboards personales de cada jugador, compatible con TAB, NameTagEdit, CMI sin configuración extra
   - 🔄 **Tarea de vigilancia optimizada** — reducida de 5 a 2 ticks para responder más rápido que plugins de tab que sobreescriben el nametag
@@ -185,3 +185,31 @@
   ## Autor
 
   Desarrollado por **zerinho23**
+
+
+  ---
+
+  ## 🔌 ProtocolLib — Integración recomendada
+
+  ### ¿Por qué instalarlo?
+
+  El plugin **TAB** (y otros como NameTagEdit, CMI) interceptan los paquetes del
+  tab list a nivel de red, ignorando lo que Bukkit establece con `setPlayerListName()`.
+  Esto hace que el tab list muestre el nombre real ("ZeroIndent") en lugar del disfraz
+  ("The_Titan19").
+
+  Con **ProtocolLib instalado**, ZerDisguise intercepta esos mismos paquetes con
+  prioridad **HIGHEST** (después de TAB) y reescribe el nombre mostrado con el del
+  disfraz, garantizando que el tab list siempre muestre el nombre correcto.
+
+  ### Instalación
+
+  1. Descarga [ProtocolLib](https://github.com/dmulloy2/ProtocolLib/releases) compatible con tu versión de Paper.
+  2. Colócalo en la carpeta `plugins/`.
+  3. Reinicia el servidor — ZerDisguise detecta ProtocolLib automáticamente.
+
+  ### Sin ProtocolLib
+
+  El plugin sigue funcionando. El nombre del disfraz se re-aplica cada ~1 segundo
+  mediante un mecanismo interno que puede ser visible como un parpadeo en el tab list.
+  
