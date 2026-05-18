@@ -1,180 +1,179 @@
 # ╔══════════════════════════════════════════════════╗
-  # ║           ZerDisguise  ·  menu.yml              ║
-  # ║  Personaliza el menu interactivo a tu gusto.    ║
-  # ╚══════════════════════════════════════════════════╝
-  #
-  # Colores de texto: &0-&f, &l (negrita), &k-&o, &#RRGGBB (hex)
-  # Materiales: nombres exactos de Material de Bukkit (en mayusculas)
-  # Slots: 0-53 para un inventario de 54 (6 filas x 9 columnas)
-  #
-  # +-----------------------------------------------+
-  # |  Fila 0 ->  slots  0 -  8   (borde superior)  |
-  # |  Fila 1 ->  slots  9 - 17   (controles)        |
-  # |  Fila 2 ->  slots 18 - 26   (divisor)          |
-  # |  Filas 3-4 -> slots 27 - 44 (contenido)        |
-  # |  Fila 5 ->  slots 45 - 53   (navegacion)       |
-  # +-----------------------------------------------+
+# ║           ZerDisguise  ·  menu.yml              ║
+# ║  Personaliza el menu interactivo a tu gusto.    ║
+# ╚══════════════════════════════════════════════════╝
+#
+# Colores de texto: &0-&f, &l (negrita), &k-&o, &#RRGGBB (hex)
+# Materiales: nombres exactos de Material de Bukkit (en mayusculas)
+# Slots: 0-53 para un inventario de 54 (6 filas x 9 columnas)
+#
+# +-----------------------------------------------+
+# |  Fila 0 ->  slots  0 -  8   (borde superior)  |
+# |  Fila 1 ->  slots  9 - 17   (controles)        |
+# |  Fila 2 ->  slots 18 - 26   (divisor)          |
+# |  Filas 3-4 -> slots 27 - 44 (contenido)        |
+# |  Fila 5 ->  slots 45 - 53   (navegacion)       |
+# +-----------------------------------------------+
 
-  # ── Titulos de cada menu ──────────────────────────────────────────
-  titles:
-    main:      "&8» &#CC88FFZerDisguise &8«"
-    confirm:   "&8» &#CC88FF&lConfirmar disfraz &8«"
-    rank-menu: "&8» &#CC88FF&lSeleccionar Rango &8«"
+# ── Titulos de cada menu ──────────────────────────────────────────
+titles:
+  main:      "&8» &#CC88FFZerDisguise &8«"
+  confirm:   "&8» &#CC88FF&lConfirmar disfraz &8«"
+  rank-menu: "&8» &#CC88FF&lSeleccionar Rango &8«"
 
-  # ── Materiales del marco (aplica a todos los menus) ──────────────
-  # border  -> bordes superior e inferior
-  # filler  -> relleno de espacios vacios
-  # divider -> barra divisora central (fila 2)
-  # corner  -> esquinas del marco
-  design:
-    border:  GRAY_STAINED_GLASS_PANE
-    filler:  BLACK_STAINED_GLASS_PANE
-    divider: PURPLE_STAINED_GLASS_PANE
-    corner:  CYAN_STAINED_GLASS_PANE
+# ── Materiales del marco (aplica a todos los menus) ──────────────
+# border  -> bordes superior e inferior
+# filler  -> relleno de espacios vacios
+# divider -> barra divisora central (fila 2)
+# corner  -> esquinas del marco
+design:
+  border:  GRAY_STAINED_GLASS_PANE
+  filler:  BLACK_STAINED_GLASS_PANE
+  divider: PURPLE_STAINED_GLASS_PANE
+  corner:  CYAN_STAINED_GLASS_PANE
 
-  # ── Botones del menu principal ────────────────────────────────────
-  buttons:
+# ── Botones del menu principal ────────────────────────────────────
+buttons:
 
-    # Boton "Escribir nombre" (slot 13 por defecto)
-    write:
-      material: NAME_TAG
-      slot: 13
-      name: "&#CC88FF&l✦ Escribir nombre"
-      lore:
-        - "&7Escribe el nombre de cualquier jugador de Minecraft."
-        - ""
-        - "&8Nota&8: &7el nombre debe existir en Mojang."
-        - ""
-        - "&#FFDD00&l» &eHaz clic para comenzar"
-
-    # Boton "Quitar disfraz" (slot 17 — solo visible si hay disfraz activo)
-    remove:
-      material: BARRIER
-      slot: 17
-      name: "&c&l✖ Quitar disfraz"
-      lore:
-        - "&7Elimina tu disfraz actual"
-        - "&7y restaura tu apariencia original."
-        - ""
-        - "&c&l» &cHaz clic para remover"
-
-    # Boton "Seleccionar rango" (slot 11 por defecto)
-    rank-selector:
-      material: BOOKSHELF
-      slot: 11
-      name: "&#CC88FF&l✦ Seleccionar rango"
-      lore:
-        - "&7Elige un rango para cambiar solo"
-        - "&7tu prefijo visible."
-        - ""
-        - "&8Nota&8: &o&7sin permisos reales."
-        - ""
-        - "&#FFDD00&l» &eHaz clic para abrir"
-
-    # Etiqueta central del divisor (slot 22)
-    label:
-      material: NETHER_STAR
-      slot: 22
-      name: "&#CC88FF&l✦ Jugadores en linea"
-      lore:
-        - "&8▸ &7Haz clic en una cabeza para"
-        - "&8  &7ponerte su nombre y skin."
-        - "&8▸ &7Se aplica instantaneamente."
-
-    # Boton pagina anterior (slot 46)
-    prev-page:
-      material: SPECTRAL_ARROW
-      slot: 46
-      name: "&e&l◄ Pagina anterior"
-
-    # Boton pagina siguiente (slot 52)
-    next-page:
-      material: SPECTRAL_ARROW
-      slot: 52
-      name: "&e&lPagina siguiente ►"
-
-    # Indicador de pagina actual (slot 49)
-    page-info:
-      material: PAPER
-      slot: 49
-
-  # ── Botones del menu de confirmacion ────────────────────────────
-  confirm-menu:
-
-    # Boton confirmar disfraz (slot 49)
-    confirm:
-      material: LIME_CONCRETE
-      slot: 49
-      name: "&a&l✔ Confirmar disfraz"
-
-    # Boton cambiar nombre (slot 46)
-    rename:
-      material: NAME_TAG
-      slot: 46
-      name: "&e&l✎ Cambiar nombre"
-      lore:
-        - "&7Escribe un nombre diferente"
-        - "&7en el chat."
-        - ""
-        - "&e&l» &eClic para cambiar"
-
-    # Boton volver (slot 52)
-    back:
-      material: ARROW
-      slot: 52
-      name: "&c&l◄ Volver"
-      lore:
-        - "&7Regresa al menu principal."
-        - ""
-        - "&c&l» &cClic para volver"
-
-  # ── Botones y textos del menu de seleccion de rango ─────────────
-  rank-menu:
-
-    # Etiqueta informativa (slot 13 del menu de rango)
-    label:
-      material: CHEST
-      slot: 13
-      name: "&#CC88FF&l✦ Selector de Rango Visual"
-      lore:
-        - "&8▸ &7Elige un rango para cambiar"
-        - "&8  &7solo tu prefijo visible."
-        - ""
-        - "&8▸ &o&7Sin permisos reales."
-        - "&8▸ &7Usa &c✖ Quitar disfraz &7para restaurar."
-
-    # Boton volver al menu principal (slot 45 del menu de rango)
-    back:
-      material: ARROW
-      slot: 45
-      name: "&c&l◄ Volver al menu"
-      lore:
-        - "&7Regresa al menu principal."
-        - ""
-        - "&c&l» &cClic para volver"
-
-    # Lore que aparece en cada item de rango (se agrega debajo del nombre)
-    rank-item-lore:
+  # Boton "Escribir nombre" (slot 13 por defecto)
+  write:
+    material: NAME_TAG
+    slot: 13
+    name: "&#CC88FF&l✦ Escribir nombre"
+    lore:
+      - "&7Escribe el nombre de cualquier jugador de Minecraft."
       - ""
-      - "&8▸ &7Solo cambia el prefijo visible."
+      - "&8Nota&8: &7el nombre debe existir en Mojang."
+      - ""
+      - "&#FFDD00&l» &eHaz clic para comenzar"
+
+  # Boton "Quitar disfraz" (slot 17 — solo visible si hay disfraz activo)
+  remove:
+    material: BARRIER
+    slot: 17
+    name: "&c&l✖ Quitar disfraz"
+    lore:
+      - "&7Elimina tu disfraz actual"
+      - "&7y restaura tu apariencia original."
+      - ""
+      - "&c&l» &cHaz clic para remover"
+
+  # Boton "Seleccionar rango" (slot 11 por defecto)
+  rank-selector:
+    material: BOOKSHELF
+    slot: 11
+    name: "&#CC88FF&l✦ Seleccionar rango"
+    lore:
+      - "&7Elige un rango para cambiar solo"
+      - "&7tu prefijo visible."
+      - ""
+      - "&8Nota&8: &o&7sin permisos reales."
+      - ""
+      - "&#FFDD00&l» &eHaz clic para abrir"
+
+  # Etiqueta central del divisor (slot 22)
+  label:
+    material: NETHER_STAR
+    slot: 22
+    name: "&#CC88FF&l✦ Jugadores en linea"
+    lore:
+      - "&8▸ &7Haz clic en una cabeza para"
+      - "&8  &7ponerte su nombre y skin."
+      - "&8▸ &7Se aplica instantaneamente."
+
+  # Boton pagina anterior (slot 46)
+  prev-page:
+    material: SPECTRAL_ARROW
+    slot: 46
+    name: "&e&l◄ Pagina anterior"
+
+  # Boton pagina siguiente (slot 52)
+  next-page:
+    material: SPECTRAL_ARROW
+    slot: 52
+    name: "&e&lPagina siguiente ►"
+
+  # Indicador de pagina actual (slot 49)
+  page-info:
+    material: PAPER
+    slot: 49
+
+# ── Botones del menu de confirmacion ────────────────────────────
+confirm-menu:
+
+  # Boton confirmar disfraz (slot 49)
+  confirm:
+    material: LIME_CONCRETE
+    slot: 49
+    name: "&a&l✔ Confirmar disfraz"
+
+  # Boton cambiar nombre (slot 46)
+  rename:
+    material: NAME_TAG
+    slot: 46
+    name: "&e&l✎ Cambiar nombre"
+    lore:
+      - "&7Escribe un nombre diferente"
+      - "&7en el chat."
+      - ""
+      - "&e&l» &eClic para cambiar"
+
+  # Boton volver (slot 52)
+  back:
+    material: ARROW
+    slot: 52
+    name: "&c&l◄ Volver"
+    lore:
+      - "&7Regresa al menu principal."
+      - ""
+      - "&c&l» &cClic para volver"
+
+# ── Botones y textos del menu de seleccion de rango ─────────────
+rank-menu:
+
+  # Etiqueta informativa (slot 13 del menu de rango)
+  label:
+    material: CHEST
+    slot: 13
+    name: "&#CC88FF&l✦ Selector de Rango Visual"
+    lore:
+      - "&8▸ &7Elige un rango para cambiar"
+      - "&8  &7solo tu prefijo visible."
+      - ""
       - "&8▸ &o&7Sin permisos reales."
-      - ""
-      - "&#FFDD00&l» &eHaz clic para aplicar"
+      - "&8▸ &7Usa &c✖ Quitar disfraz &7para restaurar."
 
-  # ── Colores de glass por rango (fallback si no esta en config.yml) ─
-  rank-glass-fallback:
-    - RED_STAINED_GLASS_PANE
-    - ORANGE_STAINED_GLASS_PANE
-    - YELLOW_STAINED_GLASS_PANE
-    - LIME_STAINED_GLASS_PANE
-    - GREEN_STAINED_GLASS_PANE
-    - CYAN_STAINED_GLASS_PANE
-    - LIGHT_BLUE_STAINED_GLASS_PANE
-    - BLUE_STAINED_GLASS_PANE
-    - PURPLE_STAINED_GLASS_PANE
-    - MAGENTA_STAINED_GLASS_PANE
-    - PINK_STAINED_GLASS_PANE
-    - WHITE_STAINED_GLASS_PANE
-    - BROWN_STAINED_GLASS_PANE
-    - GRAY_STAINED_GLASS_PANE
-  
+  # Boton volver al menu principal (slot 45 del menu de rango)
+  back:
+    material: ARROW
+    slot: 45
+    name: "&c&l◄ Volver al menu"
+    lore:
+      - "&7Regresa al menu principal."
+      - ""
+      - "&c&l» &cClic para volver"
+
+  # Lore que aparece en cada item de rango (se agrega debajo del nombre)
+  rank-item-lore:
+    - ""
+    - "&8▸ &7Solo cambia el prefijo visible."
+    - "&8▸ &o&7Sin permisos reales."
+    - ""
+    - "&#FFDD00&l» &eHaz clic para aplicar"
+
+# ── Colores de glass por rango (fallback si no esta en config.yml) ─
+rank-glass-fallback:
+  - RED_STAINED_GLASS_PANE
+  - ORANGE_STAINED_GLASS_PANE
+  - YELLOW_STAINED_GLASS_PANE
+  - LIME_STAINED_GLASS_PANE
+  - GREEN_STAINED_GLASS_PANE
+  - CYAN_STAINED_GLASS_PANE
+  - LIGHT_BLUE_STAINED_GLASS_PANE
+  - BLUE_STAINED_GLASS_PANE
+  - PURPLE_STAINED_GLASS_PANE
+  - MAGENTA_STAINED_GLASS_PANE
+  - PINK_STAINED_GLASS_PANE
+  - WHITE_STAINED_GLASS_PANE
+  - BROWN_STAINED_GLASS_PANE
+  - GRAY_STAINED_GLASS_PANE
