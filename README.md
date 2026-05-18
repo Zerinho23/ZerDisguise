@@ -148,11 +148,16 @@
 
   ## Historial de versiones
 
+  ### v2.5.6
+  - 🐛 **Fix crítico: config.yml y menu.yml** — corregida indentación YAML incorrecta que causaba `InvalidConfigurationException` al cargar el plugin (`expected '<document start>'` en línea 72)
+  - 🔧 **Fix plugin.yml** — corregida entrada `-ProtocolLib` sin espacio en la lista `softdepend`
+  - 📝 **README actualizado** — historial de versiones corregido (v2.5.5 duplicado eliminado)
+
   ### v2.5.5
   - 🔧 **Compatibilidad LP 5.x completa** — reemplazado `NodeMap.clear(Predicate)` (solo LP 5.4+) por `getNodes() + remove()`, compatible con **todas las versiones de LuckPerms API 5.x**
   - 🐛 Sin cambios de comportamiento respecto a v2.5.5 — solo corrección de compatibilidad interna
 
-  ### v2.5.5
+  ### v2.5.4
   - 💬 **Chat sin doble rango** — se inyecta un nodo de prefijo en LuckPerms con prioridad 9999 al disfrazarse, sobreescribiendo el rango real para plugins de chat (EssentialsChat, LP chat format, etc.)
   - 📋 **TAB/Scoreboard automático** — el disfraz se aplica en los scoreboards personales de cada jugador, compatible con TAB, NameTagEdit, CMI sin configuración extra
   - 🔄 **Tarea de vigilancia optimizada** — reducida de 5 a 2 ticks para responder más rápido que plugins de tab que sobreescriben el nametag
