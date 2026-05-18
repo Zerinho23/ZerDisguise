@@ -55,11 +55,12 @@ public class ZerDisguise extends JavaPlugin {
         protocolLibHook = new ProtocolLibHook(this);
         protocolLibHook.register();
 
-        // Hook de TAB (neznamy) — debe inicializarse después de que TAB esté habilitado.
-        // init() emite WARNING detallados propios — aquí solo logueamos el resultado final.
+        // Hook de TAB (neznamy) — intento via API. init() emite WARNING detallados.
         if (TabHook.init(getLogger())) {
             getLogger().info(GN + "TAB hook ACTIVO (" + TabHook.getStrategyName() + ")." + R);
         }
+        // Independientemente del hook API, verificar config de TAB para el método PAPI.
+        checkTabIntegration();
 
         DisguiseCommand cmd = new DisguiseCommand(this);
 
@@ -104,6 +105,45 @@ public class ZerDisguise extends JavaPlugin {
         if (actionbarTask != null) actionbarTask.cancel();
         scheduleActionbarTask();
         getLogger().info(GN + "Configuracion recargada correctamente." + R);
+    }
+
+    /**
+     * Detecta si TAB está instalado y si el placeholder %zerdisguise_name% está configurado.
+     * Si no lo está, emite instrucciones exactas en consola para que el admin lo configure.
+     * Esto es la solución definitiva para el tab list: TAB llama a nuestra expansión PAPI
+     * que devuelve el nombre del disfraz, sin necesidad de interceptar paquetes.
+     */
+    private void checkTabIntegration() {
+        if (!Bukkit.getPluginManager().isPluginEnabled("TAB")) return;
+
+        try {
+            java.io.File tabCfg = new java.io.File(
+                    getDataFolder().getParentFile(), "TAB" + java.io.File.separator + "config.yml");
+            boolean configured = tabCfg.exists() &&
+                    java.nio.file.Files.readString(tabCfg.toPath()).contains("zerdisguise");
+
+            if (configured) {
+                getLogger().info(GN + "TAB: placeholder %zerdisguise_name% detectado en config. Tab list OK." + R);
+            } else {
+                getLogger().warning("╔══════════════════════════════════════════════════════════════╗");
+                getLogger().warning("║  TAB detectado — SE REQUIERE 1 PASO PARA EL TAB LIST        ║");
+                getLogger().warning("╠══════════════════════════════════════════════════════════════╣");
+                getLogger().warning("║  Edita:  plugins/TAB/config.yml                             ║");
+                getLogger().warning("║  Busca o agrega la sección:                                 ║");
+                getLogger().warning("║                                                              ║");
+                getLogger().warning("║    tablist-name-formatting:                                 ║");
+                getLogger().warning("║      enabled: true                                          ║");
+                getLogger().warning("║      default-custom-name: \"%zerdisguise_name%\"              ║");
+                getLogger().warning("║                                                              ║");
+                getLogger().warning("║  Luego ejecuta en consola:  tab reload                      ║");
+                getLogger().warning("║                                                              ║");
+                getLogger().warning("║  Resultado: el tab mostrará el nombre del disfraz en vez    ║");
+                getLogger().warning("║  del nombre real, usando el placeholder de ZerDisguise.     ║");
+                getLogger().warning("╚══════════════════════════════════════════════════════════════╝");
+            }
+        } catch (Exception e) {
+            getLogger().warning("[ZerDisguise] No se pudo leer plugins/TAB/config.yml: " + e.getMessage());
+        }
     }
 
     private void scheduleActionbarTask() {
