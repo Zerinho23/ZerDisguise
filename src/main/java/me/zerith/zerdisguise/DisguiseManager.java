@@ -11,9 +11,13 @@ import java.util.UUID;
  * Gestiona los disfraces activos y anteriores de cada jugador.
  *
  * Modos:
- *  - Disfraz completo: cambia skin, nombre y rango visualmente.
- *  - Rango visual:     solo cambia el prefijo visible (nameplate + displayName),
+ *  - Disfraz completo: cambia skin, nombre, rango visual Y prefijo en LP/Vault.
+ *  - Rango visual:     solo cambia el prefijo visible (nameplate + displayName + LP/Vault prefix),
  *                      sin cambiar la skin ni otorgar permisos reales.
+ *
+ * El prefijo en LuckPerms/Vault se sobreescribe con un nodo de prioridad 9999
+ * para que los plugins de chat (EssentialsChat, LuckPerms chat format, TAB, etc.)
+ * lean el prefijo del disfraz en vez del real — evitando que aparezcan dos rangos.
  *
  * El disfraz persiste tras la muerte — solo se elimina con /undisguise.
  */
@@ -73,7 +77,6 @@ public class DisguiseManager {
 
         current.put(player.getUniqueId(), new DisguiseData(disguiseName, resolvedRankId));
         visualRankOnly.remove(player.getUniqueId());
-        // Solo restablecer el tiempo si es un disfraz nuevo (no re-aplicación tras respawn)
         disguiseStart.put(player.getUniqueId(), System.currentTimeMillis());
 
         String display = cfg.colorize(rankPrefix.isBlank()
@@ -81,6 +84,10 @@ public class DisguiseManager {
         player.setDisplayName(display);
         player.setPlayerListName(display);
         sa.applyNameplate(player, rankPrefix);
+
+        // Sobreescribir el prefijo en LuckPerms/Vault para que el chat muestre
+        // solo el prefijo del disfraz, sin duplicar el rango real del jugador.
+        rp.setDisguisePrefix(player, rankPrefix);
 
         final String finalRankDisplay = rankDisplay;
         player.sendMessage(cfg.getPrefix().append(
@@ -149,6 +156,9 @@ public class DisguiseManager {
         player.setPlayerListName(display);
         sa.applyNameplate(player, rankPrefix);
 
+        // Sobreescribir el prefijo en LP/Vault igual que en el disfraz completo
+        rp.setDisguisePrefix(player, rankPrefix);
+
         String msg = cfg.getMsgRankApplied().replace("{rank}", rankDisplay);
         player.sendMessage(cfg.getPrefix().append(cfg.component(msg)));
     }
@@ -182,7 +192,10 @@ public class DisguiseManager {
         player.setDisplayName(display);
         player.setPlayerListName(display);
         sa.applyNameplate(player, rankPrefix);
-        // El tiempo de inicio NO se reinicia (el disfraz sigue siendo el mismo)
+
+        // Re-aplicar también el prefijo en LP/Vault (puede haberse perdido al morir
+        // si algún plugin resetea el prefijo del jugador en el respawn)
+        rp.setDisguisePrefix(player, rankPrefix);
 
         if (cur != null) {
             final String fn = nameToUse;
@@ -200,6 +213,7 @@ public class DisguiseManager {
     public void removeDisguise(Player player) {
         ConfigManager cfg = plugin.getConfigManager();
         SkinApplier   sa  = plugin.getSkinApplier();
+        RankProvider  rp  = plugin.getRankProvider();
 
         boolean hasDisguise   = isDisguised(player);
         boolean hasVisualRank = visualRankOnly.containsKey(player.getUniqueId());
@@ -220,16 +234,27 @@ public class DisguiseManager {
         sa.removeNameplate(player);
         if (hasDisguise) sa.removeSkin(player);
 
+        // Restaurar el prefijo real en LuckPerms/Vault
+        rp.clearDisguisePrefix(player);
+
         player.sendMessage(cfg.getPrefix().append(cfg.component(cfg.getMsgRemoved())));
     }
 
     public void cleanupOnQuit(Player player) {
+        boolean wasDisguised  = isDisguised(player);
+        boolean hadVisualRank = visualRankOnly.containsKey(player.getUniqueId());
+
         visualRankOnly.remove(player.getUniqueId());
         disguiseStart.remove(player.getUniqueId());
         DisguiseData cur = current.remove(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
         plugin.getSkinApplier().removeNameplate(player);
         plugin.getSkinApplier().cleanupPlayer(player.getUniqueId());
+
+        // Limpiar el prefijo de disfraz en LP/Vault al desconectarse
+        if (wasDisguised || hadVisualRank) {
+            plugin.getRankProvider().clearDisguisePrefix(player);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -284,7 +309,6 @@ public class DisguiseManager {
                 if (r.id().equalsIgnoreCase(rankId)) { prefix = r.prefix(); break; }
             }
         }
-        // Devolver con colores para que el usuario pueda controlarlos en el format
         return prefix != null ? prefix : capitalize(rankId);
     }
 
