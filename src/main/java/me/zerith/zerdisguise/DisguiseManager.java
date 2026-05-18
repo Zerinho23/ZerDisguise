@@ -49,6 +49,13 @@ public class DisguiseManager {
         DisguiseData cur = current.get(player.getUniqueId());
         if (cur != null) previous.put(player.getUniqueId(), cur);
 
+
+        // Capturar rango previo ANTES de que visualRankOnly sea eliminado más abajo.
+        // Fallback cuando no se especifica rankId y el jugador destino no está en línea
+        // (evita que se pierda el rango Zeus al aplicar disfraz The_Titan19).
+        String priorRankId = visualRankOnly.get(player.getUniqueId());
+        if (priorRankId == null && cur != null && !"default".equals(cur.rankId()))
+            priorRankId = cur.rankId();
         String resolvedRankId = rankId != null && !rankId.isBlank() ? rankId : "default";
         String rankPrefix     = null;
         String rankDisplay    = null;
@@ -59,6 +66,12 @@ public class DisguiseManager {
             rankPrefix     = rp.getPlayerPrefix(onlineTarget);
         }
 
+
+        // Si el rango resuelto es "default" pero el jugador tenía un rango activo,
+        // conservarlo. Ej: Zeus (visual) + The_Titan19 (disfraz) = Zeus + The_Titan19.
+        if ("default".equals(resolvedRankId) && priorRankId != null) {
+            resolvedRankId = priorRankId;
+        }
         if (rankPrefix == null || rankPrefix.isBlank())
             rankPrefix = rp.getGroupPrefix(resolvedRankId);
 
