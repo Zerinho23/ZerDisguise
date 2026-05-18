@@ -50,6 +50,25 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // /disguise debug — diagnóstico del TAB hook (requiere zerdisguise.reload)
+        if (args.length == 1 && args[0].equalsIgnoreCase("debug")) {
+            if (!player.hasPermission("zerdisguise.reload")) {
+                player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
+                return true;
+            }
+            TabHook.diagnose(player);
+            DisguiseManager dm  = plugin.getDisguiseManager();
+            DisguiseManager.DisguiseData cur = dm.getCurrent(player.getUniqueId());
+            player.sendMessage("§8[§bZD§8] §7Disfraz activo: "
+                    + (cur != null ? "§d" + cur.disguiseName() + " §7(" + cur.rankId() + ")" : "§cNinguno"));
+            if (cur != null && TabHook.isAvailable()) {
+                player.sendMessage("§8[§bZD§8] §7Forzando nombre en TAB ahora...");
+                TabHook.setTabName(player.getUniqueId(), cur.disguiseName());
+                player.sendMessage("§8[§bZD§8] §aHecho. Revisa el tab list.");
+            }
+            return true;
+        }
+
         // Permiso base para el resto de acciones
         if (!player.hasPermission("zerdisguise.use")) {
             player.sendMessage(prefix.append(cfg.component(cfg.getMsgNoPermission())));
@@ -96,7 +115,7 @@ public class DisguiseCommand implements CommandExecutor, TabCompleter {
 
         List<String> options = new ArrayList<>();
         if (player.hasPermission("zerdisguise.use"))    options.add("remove");
-        if (player.hasPermission("zerdisguise.reload")) options.add("reload");
+        if (player.hasPermission("zerdisguise.reload")) { options.add("reload"); options.add("debug"); }
         if (player.hasPermission("zerdisguise.others")) {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 // No mostrar jugadores con bypass a quienes no son OP
