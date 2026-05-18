@@ -83,7 +83,7 @@ public class DisguiseManager {
                 ? "&d" + disguiseName : rankPrefix + " &d" + disguiseName);
         player.setDisplayName(display);
         player.setPlayerListName(display);
-        sa.applyNameplate(player, rankPrefix);
+        sa.applyNameplate(player, rankPrefix, display);
 
         // Sobreescribir el prefijo en LuckPerms/Vault para que el chat muestre
         // solo el prefijo del disfraz, sin duplicar el rango real del jugador.
@@ -154,7 +154,7 @@ public class DisguiseManager {
                 ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
         player.setDisplayName(display);
         player.setPlayerListName(display);
-        sa.applyNameplate(player, rankPrefix);
+        sa.applyNameplate(player, rankPrefix, display);
 
         // Sobreescribir el prefijo en LP/Vault igual que en el disfraz completo
         rp.setDisguisePrefix(player, rankPrefix);
@@ -191,7 +191,7 @@ public class DisguiseManager {
                 ? "&d" + nameToUse : rankPrefix + " &d" + nameToUse);
         player.setDisplayName(display);
         player.setPlayerListName(display);
-        sa.applyNameplate(player, rankPrefix);
+        sa.applyNameplate(player, rankPrefix, display);
 
         // Re-aplicar también el prefijo en LP/Vault (puede haberse perdido al morir
         // si algún plugin resetea el prefijo del jugador en el respawn)
