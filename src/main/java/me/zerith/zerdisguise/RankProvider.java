@@ -74,12 +74,14 @@ public class RankProvider {
     // ──────────────────────────────────────────────────────────────
 
     /**
-     * Inyecta un nodo de prefijo temporal en LuckPerms con prioridad DISGUISE_PREFIX_PRIORITY
-     * (9999), que sobreescribe el prefijo real del grupo del jugador.
-     * Los plugins de chat que lean LP/Vault verán solo este prefijo, evitando
-     * que aparezcan dos rangos a la vez en el chat.
+     * Inyecta un nodo de prefijo en LuckPerms con prioridad DISGUISE_PREFIX_PRIORITY (9999),
+     * sobreescribiendo el prefijo real del grupo del jugador.
+     * Los plugins de chat leen este prefijo en lugar del real — evitando doble rango en el chat.
      *
-     * Si prefix es null o vacío se elimina el nodo sin añadir uno nuevo (equivale a clearDisguisePrefix).
+     * Usa user.getNodes() + user.data().remove() para máxima compatibilidad con todas las
+     * versiones de LuckPerms API 5.x (no depende de clear(Predicate) que solo existe en 5.4+).
+     *
+     * Si prefix es null o vacío solo se eliminan nodos anteriores sin añadir uno nuevo.
      */
     public void setDisguisePrefix(Player player, String prefix) {
         // ── LuckPerms ──────────────────────────────────────────────
@@ -87,17 +89,14 @@ public class RankProvider {
             try {
                 User user = luckPerms.getUserManager().getUser(player.getUniqueId());
                 if (user != null) {
-                    // Eliminar cualquier nodo de prefijo previo con nuestra prioridad
-                    user.data().clear(NodeType.PREFIX.predicate(
-                            n -> n.getPriority() == DISGUISE_PREFIX_PRIORITY));
+                    removeDisguisePrefixNodes(user);
 
                     if (prefix != null && !prefix.isBlank()) {
-                        // Convertir códigos & a § para que LP los interprete correctamente
                         String lpPrefix = toSectionCodes(prefix);
                         user.data().add(PrefixNode.builder(lpPrefix, DISGUISE_PREFIX_PRIORITY).build());
                     }
 
-                    // Guardar de forma asíncrona (no bloquea el hilo principal)
+                    // Guardar de forma asíncrona — no bloquea el hilo principal
                     luckPerms.getUserManager().saveUser(user);
                 }
             } catch (Exception e) {
@@ -113,12 +112,11 @@ public class RankProvider {
             try {
                 String world = plugin.getServer().getWorlds().get(0).getName();
 
-                // Guardar el prefijo original solo la primera vez
-                vaultOriginalPrefixes.computeIfAbsent(player.getUniqueId(),
-                        k -> {
-                            String orig = vaultChat.getPlayerPrefix(world, player.getName());
-                            return orig != null ? orig : "";
-                        });
+                // Guardar el prefijo original solo la primera vez (computeIfAbsent garantiza esto)
+                vaultOriginalPrefixes.computeIfAbsent(player.getUniqueId(), k -> {
+                    String orig = vaultChat.getPlayerPrefix(world, player.getName());
+                    return orig != null ? orig : "";
+                });
 
                 String newPrefix = (prefix != null && !prefix.isBlank())
                         ? toSectionCodes(prefix) : "";
@@ -139,8 +137,7 @@ public class RankProvider {
             try {
                 User user = luckPerms.getUserManager().getUser(player.getUniqueId());
                 if (user != null) {
-                    user.data().clear(NodeType.PREFIX.predicate(
-                            n -> n.getPriority() == DISGUISE_PREFIX_PRIORITY));
+                    removeDisguisePrefixNodes(user);
                     luckPerms.getUserManager().saveUser(user);
                 }
             } catch (Exception e) {
@@ -161,6 +158,26 @@ public class RankProvider {
                 plugin.getLogger().warning("[RankProvider] Error al restaurar prefijo en Vault: "
                         + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Elimina todos los nodos PrefixNode con prioridad DISGUISE_PREFIX_PRIORITY del usuario.
+     *
+     * Usamos user.getNodes() + user.data().remove() en lugar de NodeMap.clear(Predicate)
+     * para ser compatibles con todas las versiones de LuckPerms API 5.x:
+     * NodeMap.clear(Predicate) fue añadido en LP 5.4 y no existe en versiones anteriores.
+     */
+    private void removeDisguisePrefixNodes(User user) {
+        // Recoger en lista nueva para no modificar la colección durante la iteración
+        List<PrefixNode> toRemove = new ArrayList<>();
+        for (PrefixNode node : user.getNodes(NodeType.PREFIX)) {
+            if (node.getPriority() == DISGUISE_PREFIX_PRIORITY) {
+                toRemove.add(node);
+            }
+        }
+        for (PrefixNode node : toRemove) {
+            user.data().remove(node);
         }
     }
 
@@ -293,7 +310,7 @@ public class RankProvider {
 
     /**
      * Convierte códigos de color con & a § para que LuckPerms y Vault
-     * los interpreten correctamente al mostrar el prefijo en el chat.
+     * los interpreten correctamente. Códigos § ya presentes pasan sin cambios.
      */
     private static String toSectionCodes(String text) {
         if (text == null) return "";
